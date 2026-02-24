@@ -1,0 +1,246 @@
+import {
+  ref,
+  get,
+  child,
+  push,
+  update,
+  remove,
+  set,
+  query,
+  orderByChild,
+} from "firebase/database";
+import { db } from "./firebase";
+import { COLLECTIONS, DOCS, DEFAULT_RATES, DEFAULT_START_DATE } from "./constants";
+import type { LoveConfig, Milestone, Rates, Bill, BillFormData, RatesFormData } from "./types";
+
+// Helper to convert File to Base64
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+}
+
+// ===== Love Counter Services =====
+
+export async function getLoveConfig(): Promise<LoveConfig> {
+  const dbRef = ref(db);
+  const snapshot = await get(child(dbRef, `${COLLECTIONS.LOVE_COUNTER}/${DOCS.LOVE_CONFIG}`));
+
+  if (snapshot.exists()) {
+    return snapshot.val() as LoveConfig;
+  }
+
+  // Create default config
+  const defaultConfig: LoveConfig = {
+    startDate: DEFAULT_START_DATE.getTime(),
+  };
+  await set(child(dbRef, `${COLLECTIONS.LOVE_COUNTER}/${DOCS.LOVE_CONFIG}`), defaultConfig);
+  return defaultConfig;
+}
+
+export async function updateLoveConfig(startDate: Date): Promise<void> {
+  const updates: any = {};
+  updates[`/${COLLECTIONS.LOVE_COUNTER}/${DOCS.LOVE_CONFIG}/startDate`] = startDate.getTime();
+  await update(ref(db), updates);
+}
+
+// ===== Milestone Services =====
+
+export async function getMilestones(): Promise<Milestone[]> {
+  const dbRef = ref(db, COLLECTIONS.MILESTONES);
+  const snapshot = await get(dbRef);
+  
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    const milestones: Milestone[] = Object.keys(data).map((key) => ({
+      id: key,
+      ...data[key],
+    }));
+    return milestones.sort((a, b) => a.order - b.order);
+  }
+  return [];
+}
+
+export async function addMilestone(
+  data: Omit<Milestone, "id" | "createdAt">
+): Promise<string> {
+  const newItemRef = push(child(ref(db), COLLECTIONS.MILESTONES));
+  const newMilestone = {
+    ...data,
+    createdAt: Date.now(),
+  };
+  await set(newItemRef, newMilestone);
+  return newItemRef.key as string;
+}
+
+export async function updateMilestone(
+  id: string,
+  data: Partial<Milestone>
+): Promise<void> {
+  const updates: any = {};
+  Object.keys(data).forEach((key) => {
+    // @ts-ignore
+    updates[`/${COLLECTIONS.MILESTONES}/${id}/${key}`] = data[key];
+  });
+  await update(ref(db), updates);
+}
+
+export async function deleteMilestone(id: string): Promise<void> {
+  await remove(ref(db, `${COLLECTIONS.MILESTONES}/${id}`));
+}
+
+export async function uploadMilestoneImage(
+  file: File,
+  milestoneId: string
+): Promise<string> {
+  // Convert explicitly to Base64 string for storage in RTDB per user request
+  return await fileToBase64(file);
+}
+
+// ===== Rates Services =====
+
+export async function getRates(): Promise<Rates> {
+  const dbRef = ref(db);
+  const snapshot = await get(child(dbRef, `${COLLECTIONS.SETTINGS}/${DOCS.RATES}`));
+
+  if (snapshot.exists()) {
+    return snapshot.val() as Rates;
+  }
+
+  // Seed default rates
+  await set(child(dbRef, `${COLLECTIONS.SETTINGS}/${DOCS.RATES}`), DEFAULT_RATES);
+  return DEFAULT_RATES;
+}
+
+export async function updateRates(data: RatesFormData): Promise<void> {
+  const updates: any = {};
+  updates[`/${COLLECTIONS.SETTINGS}/${DOCS.RATES}`] = data;
+  await update(ref(db), updates);
+}
+
+// ===== Bills Services =====
+
+export async function getBills(): Promise<Bill[]> {
+  const dbRef = ref(db, COLLECTIONS.BILLS);
+  const snapshot = await get(dbRef);
+  
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    const bills: Bill[] = Object.keys(data).map((key) => ({
+      id: key,
+      ...data[key],
+    }));
+    // Sort descending by year then month
+    return bills.sort((a, b) => {
+      if (b.year !== a.year) return b.year - a.year;
+      return b.month - a.month;
+    });
+  }
+  return [];
+}
+
+export async function getBillById(id: string): Promise<Bill | null> {
+  const dbRef = ref(db);
+  const snapshot = await get(child(dbRef, `${COLLECTIONS.BILLS}/${id}`));
+  if (snapshot.exists()) {
+    return { id: snapshot.key, ...snapshot.val() } as Bill;
+  }
+  return null;
+}
+
+export async function getLatestBill(): Promise<Bill | null> {
+  const bills = await getBills(); // Reuse getBills which sorts by newest
+  return bills.length > 0 ? bills[0] : null;
+}
+
+export async function createBill(formData: BillFormData): Promise<string> {
+  const rates = await getRates();
+
+  const electricUsage = formData.currentElectric - formData.previousElectric;
+  const waterUsage = formData.currentWater - formData.previousWater;
+  const electricTotal = electricUsage * rates.electricPrice;
+  const waterTotal = waterUsage * rates.waterPrice;
+  const totalAmount =
+    rates.baseRent + electricTotal + waterTotal + rates.wifiPrice + rates.garbagePrice;
+
+  const bill: Omit<Bill, "id"> = {
+    month: formData.month,
+    year: formData.year,
+    billDate: new Date(formData.billDate).getTime(),
+    currentElectric: formData.currentElectric,
+    previousElectric: formData.previousElectric,
+    currentWater: formData.currentWater,
+    previousWater: formData.previousWater,
+    electricUsage,
+    waterUsage,
+    electricPrice: rates.electricPrice,
+    waterPrice: rates.waterPrice,
+    baseRent: rates.baseRent,
+    wifiPrice: rates.wifiPrice,
+    garbagePrice: rates.garbagePrice,
+    electricTotal,
+    waterTotal,
+    totalAmount,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+
+  const newItemRef = push(child(ref(db), COLLECTIONS.BILLS));
+  await set(newItemRef, bill);
+  return newItemRef.key as string;
+}
+
+export async function updateBill(
+  id: string,
+  formData: BillFormData
+): Promise<void> {
+  // Re-fetch the bill to get stored rates
+  const existingBill = await getBillById(id);
+  if (!existingBill) throw new Error("Bill not found");
+
+  const electricUsage = formData.currentElectric - formData.previousElectric;
+  const waterUsage = formData.currentWater - formData.previousWater;
+  
+  // Use STORED rates from the existing bill, avoiding recalculation with current rates
+  const electricTotal = electricUsage * existingBill.electricPrice;
+  const waterTotal = waterUsage * existingBill.waterPrice;
+  
+  const totalAmount =
+    existingBill.baseRent +
+    electricTotal +
+    waterTotal +
+    existingBill.wifiPrice +
+    existingBill.garbagePrice;
+
+  const updates: any = {};
+  const updatedData = {
+    // Only update editable fields + calculated values + timestamp
+    month: formData.month,
+    year: formData.year,
+    billDate: new Date(formData.billDate).getTime(),
+    currentElectric: formData.currentElectric,
+    previousElectric: formData.previousElectric,
+    currentWater: formData.currentWater,
+    previousWater: formData.previousWater,
+    electricUsage,
+    waterUsage,
+    electricTotal,
+    waterTotal,
+    totalAmount,
+    updatedAt: Date.now(),
+  };
+
+  Object.keys(updatedData).forEach(key => {
+    // @ts-ignore
+    updates[`/${COLLECTIONS.BILLS}/${id}/${key}`] = updatedData[key];
+  });
+
+  await update(ref(db), updates);
+}
+
+export async function deleteBill(id: string): Promise<void> {
+  await remove(ref(db, `${COLLECTIONS.BILLS}/${id}`));
+}

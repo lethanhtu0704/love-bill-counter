@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-love-brown: #CB7D7C;
+  --color-love-pink: #a23d69;
+  --color-love-paper: #f4eee8;
+  --color-love-dot: #966F60;
+  --color-love-paper-shadow: rgba(139, 94, 82, 0.3);
+
+  --color-bill-primary: #4F46E5; /* Indigo-600 */
+  --color-bill-primary-hover: #4338ca; /* Indigo-700 */
+  --color-bill-bg: #F3F4F6; /* Gray-100 */
+  --color-bill-white: #ffffff;
+  --color-bill-text-dark: #111827; /* Gray-900 */
+  --color-bill-text-gray: #6B7280; /* Gray-500 */
+  --color-bill-border: #E5E7EB; /* Gray-200 */
+}
+
+.love-page{
+   min-height: 100vh;
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-repeat: repeat;
+    position: relative;
+}
