@@ -33,8 +33,8 @@ export const CHARM_IMAGES = Array.from(
 // Time format options for love counter
 export const TIME_FORMATS = [
   { value: "full", label: "Năm, Tháng, Ngày, Giờ" },
-  { value: "days", label: "Chỉ số ngày" },
-  { value: "months-days", label: "Tháng & Ngày" },
+  { value: "days", label: "Theo số ngày" },
+  { value: "months-days", label: "Theo tháng & ngày" },
 ] as const;
 
 export type TimeFormat = (typeof TIME_FORMATS)[number]["value"];

@@ -135,6 +135,9 @@ export default function LoveCounterPage() {
       <div className="relative z-[1] mx-auto max-w-[1000px] px-5 py-10">
         {/* Header */}
         <header className="mb-15 text-center relative">
+          <p className="mt-3 text-lg italic text-love-pink">
+            Ngày kể từ buổi hẹn đầu tiên <span className="text-love-pink">❤</span>
+          </p>
           <TimeCounter
             startDate={startDate!}
             format={timeFormat}
@@ -161,10 +164,6 @@ export default function LoveCounterPage() {
             </button>
           </div>
 
-          <p className="mt-3 text-lg italic text-love-pink">
-            Ngày kể từ buổi hẹn đầu tiên <span className="text-love-pink">❤</span>
-          </p>
-
           {showDatePicker && (
             <DatePickerPopover
               currentDate={startDate!}
@@ -178,32 +177,6 @@ export default function LoveCounterPage() {
         <div className="relative py-5">
           {/* Central dashed line */}
           <div className="absolute top-0 bottom-0 left-1/2 -ml-px w-0.5 bg-[repeating-linear-gradient(to_bottom,#966F60_60%,transparent_40%)] bg-[length:2px_15px] opacity-40 z-0 max-md:left-[30px]" />
-
-          {/* Default empty milestones when none exist */}
-          {milestones.length === 0 && (
-            <>
-              {[0, 1, 2].map((i) => (
-                <MilestoneCard
-                  key={`empty-${i}`}
-                  milestone={{
-                    id: `empty-${i}`,
-                    title: "",
-                    content: "",
-                    date: Date.now(),
-                    imageUrl: "",
-                    charmImage: `/assets/charm${(i * 3 + 7) % 16 + 1}.png`,
-                    order: i,
-                    createdAt: Date.now(),
-                  }}
-                  index={i}
-                  onUpdate={handleUpdateMilestone}
-                  onDelete={handleDeleteMilestone}
-                  onImageUpload={handleImageUpload}
-                  isPlaceholder
-                />
-              ))}
-            </>
-          )}
 
           {milestones.map((m, i) => (
             <MilestoneCard

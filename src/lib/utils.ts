@@ -21,7 +21,7 @@ export function formatMonthYear(month: number, year: number): string {
 }
 
 export function getRandomCharm(): string {
-  const idx = Math.floor(Math.random() * 16) + 1;
+  const idx = Math.floor(Math.random() * 42) + 1;
   return `/assets/charm${idx}.png`;
 }
 

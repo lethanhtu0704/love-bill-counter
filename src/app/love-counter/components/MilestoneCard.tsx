@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import "./css/MilestoneCard.css";
 import type { Milestone } from "@/lib/types";
 
 interface MilestoneCardProps {
@@ -39,16 +40,13 @@ export default function MilestoneCard({
   // We rely on parent to handle actual upload logic, but we can track loading state here if needed
   // However, `onImageUpload` is async, so we can await it.
   const [uploading, setUploading] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const isLeft = index % 2 === 0;
-  // const charmPos = CHARM_POSITIONS[index % CHARM_POSITIONS.length];
-  // const tiltClass = isLeft ? "-rotate-[3deg]" : "rotate-[3deg]";
-  // const bannerTiltClass = isLeft ? "rotate-[1deg]" : "-rotate-[1deg]";
+  const tapeClass = useMemo(() => Math.random() < 0.5 ? "top-tape" : "tape-section", []);
 
-  // Handle date conversion from number
+  const isLeft = index % 2 === 0;
   const milestoneDate = milestone.date ? new Date(milestone.date) : new Date();
 
   const handleImageClick = () => {
@@ -98,9 +96,8 @@ export default function MilestoneCard({
 
   return (
     <motion.div
-      className={`flex items-center justify-center mb-20 relative z-[1] max-md:flex-col max-md:items-start max-md:ml-12 ${
-        isLeft ? "" : "flex-row-reverse"
-      }`}
+      className={`flex items-center justify-center mb-20 relative z-[1] max-md:flex-col max-md:items-start max-md:ml-12 ${isLeft ? "" : "flex-row-reverse"
+        }`}
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
@@ -109,7 +106,7 @@ export default function MilestoneCard({
       {/* Date Marker */}
       <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-10 max-md:-left-6">
         <div className="w-4 h-4 rounded-full bg-love-pink border-4 border-white shadow-sm" />
-        <div 
+        <div
           className="mt-2 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-love-brown shadow-sm cursor-pointer hover:bg-white transition-colors"
           onClick={() => !isPlaceholder && setEditingDate(true)}
         >
@@ -131,17 +128,17 @@ export default function MilestoneCard({
       {/* Content Card */}
       <div className={`relative w-[45%] max-md:w-full ${isLeft ? "pr-12 max-md:pr-0 max-md:pl-4" : "pl-12 max-md:pl-4"}`}>
         <motion.div
-          className={`relative bg-white p-5 rounded-sm shadow-md border border-love-brown/10 ${
-             isLeft ? "-rotate-[2deg]" : "rotate-[2deg]"
-          }`}
+          className={`relative paper white p-5 rounded-sm shadow-md border border-love-brown/10 ${isLeft ? "-rotate-[2deg]" : "rotate-[2deg]"
+            }`}
           whileHover={{ rotate: 0, scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300 }}
         >
+          <div className={tapeClass}></div>
           {/* Paper Texture Overlay */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
 
           {/* Image Area */}
-          <div 
+          <div
             className="relative aspect-[4/3] w-full bg-love-beige/20 flex items-center justify-center overflow-hidden rounded-sm cursor-pointer group mb-4 border border-love-brown/10"
             onClick={handleImageClick}
           >
@@ -157,7 +154,7 @@ export default function MilestoneCard({
                 <span>Thêm ảnh</span>
               </div>
             )}
-            
+
             {uploading && (
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -185,8 +182,8 @@ export default function MilestoneCard({
               placeholder="Tiêu đề..."
             />
           ) : (
-            <h3 
-              className="text-xl font-bold text-love-brown mb-2 font-[family-name:var(--font-playfair)] cursor-text hover:text-love-pink transition-colors"
+            <h3
+              className="text-xl font-bold text-love-brown mb-2 font-[family-name:var(--font-playfair)] wrap-break-word cursor-text hover:text-love-pink transition-colors"
               onClick={() => !isPlaceholder && setEditingTitle(true)}
             >
               {milestone.title || "Tiêu đề kỷ niệm"}
@@ -208,8 +205,8 @@ export default function MilestoneCard({
               placeholder="Viết gì đó..."
             />
           ) : (
-            <p 
-              className="text-sm text-love-brown/80 leading-relaxed whitespace-pre-wrap cursor-text hover:text-love-brown transition-colors min-h-[20px]"
+            <p
+              className="text-sm text-love-brown/80 wrap-break-word leading-relaxed whitespace-pre-wrap cursor-text hover:text-love-brown transition-colors min-h-[20px]"
               onClick={() => !isPlaceholder && setEditingContent(true)}
             >
               {milestone.content || "Nội dung kỷ niệm..."}
@@ -220,7 +217,7 @@ export default function MilestoneCard({
           {!isPlaceholder && (
             <button
               onClick={() => onDelete(milestone.id)}
-              className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-500"
+              className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 text-white rounded-full flex items-center justify-center opacity-0 transition-opacity shadow-sm hover:bg-red-500"
               title="Xóa kỷ niệm"
             >
               ×
@@ -229,18 +226,19 @@ export default function MilestoneCard({
 
           {/* Charm Decoration */}
           {milestone.charmImage && (
-             <img 
-               src={milestone.charmImage} 
-               alt="charm"
-               className={`absolute w-12 h-12 drop-shadow-sm pointer-events-none -bottom-4 -right-4 rotate-12`}
-             />
+            <img
+              src={milestone.charmImage}
+              alt="charm"
+              className={`absolute w-15  drop-shadow-sm z-100 pointer-events-none -bottom-4 -right-3 rotate-12`}
+            />
           )}
 
         </motion.div>
       </div>
-      
+
       {/* Spacer for the other side */}
       <div className="w-[45%] max-md:hidden" />
+
     </motion.div>
   );
 }
