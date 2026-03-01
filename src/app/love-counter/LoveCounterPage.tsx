@@ -115,7 +115,7 @@ export default function LoveCounterPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
+      <div className="min-h-screen flex items-center justify-center bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-repeat-x bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
         <motion.div
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ repeat: Infinity, duration: 1.5 }}
@@ -128,7 +128,7 @@ export default function LoveCounterPage() {
   }
 
   return (
-    <div className="love-page font-[family-name:var(--font-playfair)] text-love-brown bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
+    <div className="love-page font-[family-name:var(--font-playfair)] text-love-brown bg-[url('/assets/desktop-background.png')] bg-repeat-x bg-cover bg-center bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
       {/* Dark overlay */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-black/10" />
 
