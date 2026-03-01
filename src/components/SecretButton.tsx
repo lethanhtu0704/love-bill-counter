@@ -22,13 +22,6 @@ export default function SecretButton({ targetRoute }: SecretButtonProps) {
       }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
-      animate={{ 
-        boxShadow: [
-          "0 4px 15px rgba(0,0,0,0.2)",
-          "0 4px 25px rgba(0,0,0,0.3)",
-          "0 4px 15px rgba(0,0,0,0.2)",
-        ]
-      }}
       transition={{ 
         boxShadow: { repeat: Infinity, duration: 2 },
       }}

@@ -55,7 +55,7 @@ export default function RatesModal({ rates, onClose, onUpdated }: RatesModalProp
       onClick={onClose}
     >
       <motion.div
-        className="bg-white p-8 rounded-2xl w-full max-w-[480px] shadow-2xl border border-gray-100"
+        className="bg-white p-8 rounded-2xl w-full max-w-[480px] shadow-2xl max-h-[90vh] overflow-y-auto"
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 10 }}

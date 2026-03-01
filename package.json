@@ -18,12 +18,15 @@
     "react-to-print": "^3.2.0"
   },
   "devDependencies": {
+    "@serwist/turbopack": "^9.5.6",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.27.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "serwist": "^9.5.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

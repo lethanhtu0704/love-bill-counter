@@ -25,7 +25,6 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Auto-fill previous readings from the latest bill
   const handleAutoFill = async () => {
     try {
       const latest = await getLatestBill();
@@ -96,7 +95,7 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
-             <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -104,7 +103,7 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="grid grid-cols-2 gap-4">
-             <div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Tháng
               </label>
@@ -127,7 +126,7 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
                 </div>
               </div>
             </div>
-             <div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Năm
               </label>
@@ -148,7 +147,7 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
               type="date"
               value={formData.billDate}
               onChange={(e) => handleChange("billDate", e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all font-medium"
+              className="w-70 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all font-medium"
             />
           </div>
 
@@ -166,25 +165,27 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
               </button>
             </div>
             <div className="grid grid-cols-2 gap-4">
-               <div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                   Số cũ
                 </label>
                 <input
                   type="number"
                   value={formData.previousElectric}
-                  onChange={(e) => handleChange("previousElectric", parseInt(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => handleChange("previousElectric", e.target.value === "" ? "" : Number(e.target.value))}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all font-medium"
                 />
               </div>
-               <div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                   Số mới
                 </label>
                 <input
                   type="number"
                   value={formData.currentElectric}
-                  onChange={(e) => handleChange("currentElectric", parseInt(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => handleChange("currentElectric", e.target.value === "" ? "" : Number(e.target.value))}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all font-medium"
                 />
               </div>
@@ -192,29 +193,31 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
           </div>
 
           <div className="border-t border-gray-100 pt-4">
-             <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-3">
               <span className="text-blue-500">💧</span> Chỉ số nước
             </h3>
             <div className="grid grid-cols-2 gap-4">
-               <div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                   Số cũ
                 </label>
                 <input
                   type="number"
+                  onFocus={(e) => e.target.select()}
                   value={formData.previousWater}
-                  onChange={(e) => handleChange("previousWater", parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleChange("previousWater", e.target.value === "" ? "" : Number(e.target.value))}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all font-medium"
                 />
               </div>
-               <div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
                   Số mới
                 </label>
                 <input
                   type="number"
                   value={formData.currentWater}
-                  onChange={(e) => handleChange("currentWater", parseInt(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => handleChange("currentWater", e.target.value === "" ? "" : Number(e.target.value))}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all font-medium"
                 />
               </div>
@@ -223,7 +226,7 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
 
           {error && (
             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-100 flex gap-2 items-center">
-               <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {error}
@@ -236,13 +239,13 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
             className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all cursor-pointer disabled:opacity-50 shadow-lg hover:shadow-xl transform active:scale-[0.99] mt-2 flex justify-center items-center gap-2"
           >
             {submitting ? (
-               <>
+              <>
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Đang xử lý...
-               </>
+              </>
             ) : (
               "Tạo hóa đơn"
             )}

@@ -176,7 +176,6 @@ export default function LoveCounterPage() {
         {/* Timeline */}
         <div className="relative py-5">
           {/* Central dashed line */}
-          <div className="absolute top-0 bottom-0 left-1/2 -ml-px w-0.5 bg-[repeating-linear-gradient(to_bottom,#966F60_60%,transparent_40%)] bg-[length:2px_15px] opacity-40 z-0 max-md:left-[30px]" />
 
           {milestones.map((m, i) => (
             <MilestoneCard

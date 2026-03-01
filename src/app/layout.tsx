@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
+import { SerwistProvider } from "./serwist";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -28,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={`${playfair.variable} ${inter.variable} antialiased`}>
-        {children}
+        <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>
       </body>
     </html>
   );
