@@ -54,6 +54,14 @@ export default function LoveCounterPage() {
     attachFcmForegroundListener();
   }, []);
 
+  useEffect(() => {
+    // If the user already granted permission on this device, ensure token is registered
+    if (typeof window === "undefined") return;
+    if ("Notification" in window && Notification.permission === "granted") {
+      void ensureFcmToken();
+    }
+  }, []);
+
   const handleDateChange = async (date: Date) => {
     setStartDate(date);
     setShowDatePicker(false);

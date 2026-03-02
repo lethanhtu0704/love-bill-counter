@@ -89,11 +89,17 @@ export async function ensureFcmToken(): Promise<string | null> {
   const cached = getCachedToken();
   if (cached && Notification.permission === "granted") return cached;
 
+  // IMPORTANT (Chrome / iOS): request permission without any prior `await`
+  // so it's still considered a user gesture.
+  if (Notification.permission === "default") {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return null;
+  }
+
+  if (Notification.permission !== "granted") return null;
+
   const supported = await isSupported();
   if (!supported) return null;
-
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return null;
 
   const reg = await getSwRegistration();
   if (!reg) return null;
@@ -110,11 +116,14 @@ export async function ensureFcmToken(): Promise<string | null> {
 
   // Best-effort: register token to server
   try {
-    await fetch("/api/push/subscribe", {
+    const res = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token, userAgent: navigator.userAgent }),
     });
+    if (!res.ok) {
+      console.error("FCM subscribe failed:", res.status);
+    }
   } catch {
     // Ignore subscribe failures
   }

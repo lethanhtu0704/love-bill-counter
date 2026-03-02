@@ -24,29 +24,32 @@ export async function POST() {
   const title = "Love Counter";
   const body = "Một kỷ niệm mới vừa được thêm";
 
-  const results = await Promise.allSettled(
-    tokens.map((token) =>
-      messaging.send({
-        token,
-        notification: {
-          title,
-          body,
-        },
-        data: {
-          title,
-          body,
-          kind: "milestone_added",
-        },
-      })
-    )
-  );
+  const multicast = await messaging.sendEachForMulticast({
+    tokens,
+    notification: { title, body },
+    data: {
+      title,
+      body,
+      kind: "milestone_added",
+      url: "/love-counter",
+    },
+    webpush: {
+      fcmOptions: {
+        link: "/love-counter",
+      },
+      notification: {
+        icon: "/assets/app-icon.png",
+      },
+    },
+  });
 
-  // Best-effort cleanup for invalid tokens
+  const errorsByCode: Record<string, number> = {};
   const invalidTokens: string[] = [];
-  results.forEach((r, idx) => {
-    if (r.status === "fulfilled") return;
-    const err: any = r.reason;
-    const code = err?.errorInfo?.code || err?.code;
+  multicast.responses.forEach((resp, idx) => {
+    if (resp.success) return;
+    const err: any = resp.error;
+    const code = err?.errorInfo?.code || err?.code || "unknown";
+    errorsByCode[code] = (errorsByCode[code] || 0) + 1;
     if (
       code === "messaging/registration-token-not-registered" ||
       code === "messaging/invalid-registration-token"
@@ -70,7 +73,12 @@ export async function POST() {
     await Promise.all(deletes);
   }
 
-  const sent = results.filter((r) => r.status === "fulfilled").length;
-  const failed = results.length - sent;
-  return NextResponse.json({ ok: true, sent, failed });
+  const sent = multicast.successCount;
+  const failed = multicast.failureCount;
+  return NextResponse.json({
+    ok: true,
+    sent,
+    failed,
+    errorsByCode,
+  });
 }

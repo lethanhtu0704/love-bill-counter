@@ -30,6 +30,11 @@ self.addEventListener("push", (event: PushEvent) => {
         }
       }
 
+      // FCM on some browsers wraps the actual message in `data.FCM_MSG`
+      if (payload?.data?.FCM_MSG) {
+        payload = payload.data.FCM_MSG;
+      }
+
       const title =
         payload?.notification?.title || payload?.data?.title || "Love Counter";
       const body = payload?.notification?.body || payload?.data?.body || "";
