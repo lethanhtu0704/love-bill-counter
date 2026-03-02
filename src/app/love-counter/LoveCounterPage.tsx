@@ -14,7 +14,11 @@ import {
 import { getRandomCharm, getRandomCharmPosition } from "@/lib/utils";
 import { TIME_FORMATS, type TimeFormat } from "@/lib/constants";
 import type { Milestone } from "@/lib/types";
-import { attachFcmForegroundListener, ensureFcmToken } from "@/lib/push";
+import {
+  attachFcmForegroundListener,
+  ensureFcmToken,
+  notifyMilestoneAddedLocal,
+} from "@/lib/push";
 import TimeCounter from "./components/TimeCounter";
 import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
@@ -61,12 +65,10 @@ export default function LoveCounterPage() {
   };
 
   const handleAddMilestone = async () => {
-    // User gesture: request permission + register token here (iOS PWA requires gesture)
-    try {
-      await ensureFcmToken();
-    } catch {
+    // User gesture: kick off permission/token flow, but don't block UI
+    void ensureFcmToken().catch(() => {
       // Ignore token failures
-    }
+    });
 
     const charm = getRandomCharm();
     // unused: const charmPos = getRandomCharmPosition();
@@ -85,10 +87,19 @@ export default function LoveCounterPage() {
         { ...newMilestone, id, createdAt: Date.now() },
       ]);
 
+      // Immediate feedback (foreground/local notification)
+      void notifyMilestoneAddedLocal();
+
       // Fire-and-forget: send push to all subscribed devices
-      fetch("/api/push/notify-milestone", { method: "POST" }).catch(() => {
-        // Ignore notify failures
-      });
+      fetch("/api/push/notify-milestone", { method: "POST" })
+        .then((res) => {
+          if (!res.ok) {
+            console.error("Push notify failed:", res.status);
+          }
+        })
+        .catch((err) => {
+          console.error("Push notify error:", err);
+        });
     } catch (err) {
       console.error("Error adding milestone:", err);
     }
