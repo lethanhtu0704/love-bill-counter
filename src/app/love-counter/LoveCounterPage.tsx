@@ -14,6 +14,7 @@ import {
 import { getRandomCharm, getRandomCharmPosition } from "@/lib/utils";
 import { TIME_FORMATS, type TimeFormat } from "@/lib/constants";
 import type { Milestone } from "@/lib/types";
+import { attachFcmForegroundListener, ensureFcmToken } from "@/lib/push";
 import TimeCounter from "./components/TimeCounter";
 import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
@@ -45,6 +46,10 @@ export default function LoveCounterPage() {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    attachFcmForegroundListener();
+  }, []);
+
   const handleDateChange = async (date: Date) => {
     setStartDate(date);
     setShowDatePicker(false);
@@ -56,6 +61,13 @@ export default function LoveCounterPage() {
   };
 
   const handleAddMilestone = async () => {
+    // User gesture: request permission + register token here (iOS PWA requires gesture)
+    try {
+      await ensureFcmToken();
+    } catch {
+      // Ignore token failures
+    }
+
     const charm = getRandomCharm();
     // unused: const charmPos = getRandomCharmPosition();
     try {
@@ -72,6 +84,11 @@ export default function LoveCounterPage() {
         ...prev,
         { ...newMilestone, id, createdAt: Date.now() },
       ]);
+
+      // Fire-and-forget: send push to all subscribed devices
+      fetch("/api/push/notify-milestone", { method: "POST" }).catch(() => {
+        // Ignore notify failures
+      });
     } catch (err) {
       console.error("Error adding milestone:", err);
     }
