@@ -17,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Trang cá nhân",
+  title: "Tú & Ngân",
   description: "Love Counter & Room Bill Calculator",
 };
 
