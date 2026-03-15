@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   getLoveConfig,
@@ -23,44 +23,75 @@ import TimeCounter from "./components/TimeCounter";
 import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
 import SecretButton from "@/components/SecretButton";
+import { validatePin } from "./actions";
 
 export default function LoveCounterPage() {
+  // ── Auth ──────────────────────────────────────────────────────────────
+  const [authenticated, setAuthenticated] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("lc_auth") === "1";
+  });
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const pinInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Data ──────────────────────────────────────────────────────────────
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>("full");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [milestonesLoading, setMilestonesLoading] = useState(true);
 
   const loadData = useCallback(async () => {
+    // 1. Load config first — drops the main loading screen quickly
     try {
-      const [config, ms] = await Promise.all([getLoveConfig(), getMilestones()]);
+      const config = await getLoveConfig();
       setStartDate(new Date(config.startDate));
-      setMilestones(ms);
     } catch (err) {
-      console.error("Error loading love counter data:", err);
-      // Fallback: allow app to work without Firebase
+      console.error("Error loading love config:", err);
       setStartDate(new Date("2024-09-01"));
-      setMilestones([]);
     } finally {
       setLoading(false);
     }
+
+    // 2. Load milestones in the background (they carry heavy base64 images)
+    getMilestones()
+      .then((ms) => setMilestones(ms))
+      .catch((err) => console.error("Error loading milestones:", err))
+      .finally(() => setMilestonesLoading(false));
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (authenticated) loadData();
+  }, [authenticated, loadData]);
 
   useEffect(() => {
-    attachFcmForegroundListener();
-  }, []);
+    if (authenticated) attachFcmForegroundListener();
+  }, [authenticated]);
 
   useEffect(() => {
+    if (!authenticated) return;
     // If the user already granted permission on this device, ensure token is registered
     if (typeof window === "undefined") return;
     if ("Notification" in window && Notification.permission === "granted") {
       void ensureFcmToken();
     }
-  }, []);
+  }, [authenticated]);
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = await validatePin(pin);
+    if (ok) {
+      sessionStorage.setItem("lc_auth", "1");
+      setAuthenticated(true);
+      setPinError(false);
+    } else {
+      setPinError(true);
+      setPin("");
+      setTimeout(() => pinInputRef.current?.focus(), 0);
+    }
+  };
 
   const handleDateChange = async (date: Date) => {
     setStartDate(date);
@@ -149,6 +180,81 @@ export default function LoveCounterPage() {
     }
   };
 
+  // ── Auth screen ───────────────────────────────────────────────────────
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-repeat-x bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
+        <div className="pointer-events-none fixed inset-0 z-0 bg-black/20" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 bg-love-paper/90 backdrop-blur-sm rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-5 w-[320px]"
+        >
+          <div className="text-4xl">🔒</div>
+          <h2 className="font-[family-name:var(--font-playfair)] text-love-brown text-xl font-semibold">
+            Nhập mật khẩu để vào
+          </h2>
+          <form onSubmit={handlePinSubmit} className="w-full flex flex-col gap-3">
+            {/* Dot display — tap anywhere to focus hidden input */}
+            <div
+              className="relative flex justify-center gap-4 py-5 cursor-text"
+              onClick={() => pinInputRef.current?.focus()}
+            >
+              {/* Hidden real input captures keyboard */}
+              <input
+                ref={pinInputRef}
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={pin}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  setPin(val);
+                  setPinError(false);
+                  // Auto-submit once all 6 digits are filled
+                  if (val.length === 6) {
+                    validatePin(val).then((ok) => {
+                      if (ok) {
+                        sessionStorage.setItem("lc_auth", "1");
+                        setAuthenticated(true);
+                      } else {
+                        setPinError(true);
+                        setPin("");
+                        setTimeout(() => pinInputRef.current?.focus(), 0);
+                      }
+                    });
+                  }
+                }}
+                autoFocus
+                autoComplete="off"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-text select-none"
+              />
+              {/* 6 visual dots */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                    i < pin.length
+                      ? pinError
+                        ? "bg-red-400 border-red-400 scale-110"
+                        : "bg-love-brown border-love-brown scale-110"
+                      : pinError
+                        ? "bg-transparent border-red-300"
+                        : "bg-transparent border-love-brown/30"
+                  }`}
+                />
+              ))}
+            </div>
+            {pinError && (
+              <p className="text-red-400 text-sm text-center animate-shake">Mã không đúng, thử lại nha eiu ❤</p>
+            )}
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── Config loading screen (resolves fast) ─────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-repeat-x bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
@@ -213,16 +319,34 @@ export default function LoveCounterPage() {
         <div className="relative py-5">
           {/* Central dashed line */}
 
-          {milestones.map((m, i) => (
-            <MilestoneCard
-              key={m.id}
-              milestone={m}
-              index={i}
-              onUpdate={handleUpdateMilestone}
-              onDelete={handleDeleteMilestone}
-              onImageUpload={handleImageUpload}
-            />
-          ))}
+          {milestonesLoading ? (
+            <div className="flex flex-col items-center gap-4 py-10">
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                className="text-love-brown/50 text-sm italic"
+              >
+                Đang tải kỷ niệm...
+              </motion.div>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="w-full max-w-[560px] h-28 rounded-2xl bg-love-paper/60 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            milestones.map((m, i) => (
+              <MilestoneCard
+                key={m.id}
+                milestone={m}
+                index={i}
+                onUpdate={handleUpdateMilestone}
+                onDelete={handleDeleteMilestone}
+                onImageUpload={handleImageUpload}
+              />
+            ))
+          )}
 
           {/* Add milestone button */}
           <motion.div
