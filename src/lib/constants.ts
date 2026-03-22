@@ -4,6 +4,7 @@ export const COLLECTIONS = {
   BILLS: "bills",
   LOVE_COUNTER: "love_counter",
   MILESTONES: "milestones",
+  MEAL_PLANNER: "meal_planner",
 } as const;
 
 // Firestore document IDs

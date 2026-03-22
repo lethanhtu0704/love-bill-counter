@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { SerwistProvider } from "./serwist";
 import BottomNavBar from "@/components/BottomNavBar";
@@ -32,7 +33,9 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${inter.variable} antialiased`}>
         <SerwistProvider swUrl="/serwist/sw.js">
           {children}
-          <BottomNavBar />
+          <Suspense fallback={null}>
+            <BottomNavBar />
+          </Suspense>
         </SerwistProvider>
       </body>
     </html>

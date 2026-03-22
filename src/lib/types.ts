@@ -67,3 +67,13 @@ export interface RatesFormData {
   wifiPrice: number;
   garbagePrice: number;
 }
+
+// ===== Meal Planner Types =====
+
+export interface DayMeals {
+  breakfast: string[];
+  lunch: string[];
+  dinner: string[];
+}
+
+export type WeekMeals = Record<string, DayMeals>;

@@ -1,9 +1,10 @@
 # Application Architecture & Overview
 
 ## 1. Project Overview
-A unified Next.js web application that bundles two primary features:
+A unified Next.js web application that bundles three primary features:
 1. **Love Counter:** A time-tracking feature that calculates the duration of a relationship and displays key relationship milestones.
 2. **Room Bill Calculator:** A comprehensive utility for calculating, managing, and generating receipts for monthly room bills.
+3. **Meal Planner:** A weekly meal planning feature (breakfast/lunch/dinner) with per-day editing and Firebase persistence.
 
 ## 2. Tech Stack & Libraries
 - **Framework:** Next.js (16.x) with the **App Router** (`src/app`).
@@ -21,7 +22,8 @@ src/
 ├── app/                  # Next.js App Router root
 │   ├── api/              # API Routes (Backend logic)
 │   ├── love-counter/     # Feature 1: Love Counter pages & components
-│   ├── room-bill/        # Feature 2: Room Bill pages & components
+│   ├── meal-planner/     # Feature 2: Weekly meal planning pages & components
+│   ├── room-bill/        # Feature 3: Room Bill pages & components
 │   ├── serwist/          # Serwist PWA API endpoints
 │   ├── ~offline/         # PWA fallback offline page
 │   ├── sw.ts             # Service worker entrypoint
@@ -39,7 +41,12 @@ src/
   - `MilestoneCard.tsx` & `DatePickerPopover.tsx`: UI for milestone display and date selection.
 - **Flow:** Users visit the page -> The app retrieves the "start date" (via `actions.ts` or database) -> The `TimeCounter` calculates the delta -> `framer-motion` potentially animates these milestones.
 
-### B. The Room Bill Calculator (`src/app/room-bill/`)
+### B. The Meal Planner (`src/app/meal-planner/`)
+- **Purpose:** Plan meals by week, choose a specific day, and maintain breakfast/lunch/dinner entries.
+- **Flow:** User picks a week/date -> App loads week data from Firebase Realtime Database -> User edits meals -> App writes updates back to Firebase under the selected week/day key.
+- **Storage Path:** `meal_planner/{weekStartKey}/{dayKey}` where keys use `yyyy-MM-dd`.
+
+### C. The Room Bill Calculator (`src/app/room-bill/`)
 - **Purpose:** Manage monthly housing expenses, calculate totals, and review previous bills.
 - **Components:** 
   - Dashboard (`DashboardPage.tsx` with `BillCardList` / `BillTable`) displays the overview.
@@ -48,14 +55,14 @@ src/
   - Shared `Receipt.tsx` (in `src/components/`): Likely uses `react-to-print` to generate snapshot receipts of calculated bills.
 - **Flow:** Users log into the Dashboard -> Click "Add Bill" -> Fill out the `BillFormModal` with meter readings -> The app calculates costs using base rates -> Saved to Firebase -> Displays on `BillTable` -> Can be exported as a receipt.
 
-### C. Push Notifications (`src/app/api/push/`)
+### D. Push Notifications (`src/app/api/push/`)
 - **Purpose:** Engage users by alerting them about relationship milestones or bill reminders.
 - **Flow:** The client subscribes via `api/push/subscribe/route.ts` (handled through `lib/push.ts`). The `notify-milestone/` endpoint can be triggered manually or via a CRON job to dispatch notifications using `firebase-admin`.
 
 ## 5. Firebase & Data Flow
 - `lib/firebase.ts`: Initializes the client-side Firebase app (Auth, Firestore, Messaging).
 - `lib/firebaseAdmin.ts`: Initializes the secure server-side SDK (used in API routes for secure operations and push notifications).
-- `lib/services.ts`: Wraps Firebase calls into reusable helper functions for retrieving and mutating App data.
+- `lib/services.ts`: Wraps Firebase Realtime Database calls into reusable helper functions for retrieving and mutating app data (Love Counter, Room Bills, Meal Planner).
 - **Server Actions vs API Routes:** The app utilizes both Server Actions (`love-counter/actions.ts`) for direct UI mutations and generic API routes (`src/app/api/`) for external hooks/webhooks.
 
 ## 6. Development & Deployment Notes

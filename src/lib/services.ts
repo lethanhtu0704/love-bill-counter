@@ -11,7 +11,16 @@ import {
 } from "firebase/database";
 import { db } from "./firebase";
 import { COLLECTIONS, DOCS, DEFAULT_RATES, DEFAULT_START_DATE } from "./constants";
-import type { LoveConfig, Milestone, Rates, Bill, BillFormData, RatesFormData } from "./types";
+import type {
+  LoveConfig,
+  Milestone,
+  Rates,
+  Bill,
+  BillFormData,
+  RatesFormData,
+  DayMeals,
+  WeekMeals,
+} from "./types";
 
 // Helper to convert File to Base64
 export function fileToBase64(file: File): Promise<string> {
@@ -243,4 +252,25 @@ export async function updateBill(
 
 export async function deleteBill(id: string): Promise<void> {
   await remove(ref(db, `${COLLECTIONS.BILLS}/${id}`));
+}
+
+// ===== Meal Planner Services =====
+
+export async function getMealsForWeek(weekKey: string): Promise<WeekMeals> {
+  const dbRef = ref(db);
+  const snapshot = await get(child(dbRef, `${COLLECTIONS.MEAL_PLANNER}/${weekKey}`));
+
+  if (snapshot.exists()) {
+    return snapshot.val() as WeekMeals;
+  }
+
+  return {};
+}
+
+export async function upsertDayMeals(
+  weekKey: string,
+  dayKey: string,
+  meals: DayMeals
+): Promise<void> {
+  await set(ref(db, `${COLLECTIONS.MEAL_PLANNER}/${weekKey}/${dayKey}`), meals);
 }

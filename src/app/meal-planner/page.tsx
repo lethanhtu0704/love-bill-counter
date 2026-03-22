@@ -2,24 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format, startOfWeek } from "date-fns";
-import { useSearchParams } from "next/navigation";
-
-type DayMeals = {
-  breakfast: string[];
-  lunch: string[];
-  dinner: string[];
-};
-
-type WeekMeals = Record<string, DayMeals>;
-type MealStorage = Record<string, WeekMeals>;
+import { getMealsForWeek, upsertDayMeals } from "@/lib/services";
+import type { DayMeals, WeekMeals } from "@/lib/types";
 
 type DraftMeals = {
   breakfast: string;
   lunch: string;
   dinner: string;
 };
-
-const STORAGE_KEY = "meal-planner-v1";
 
 const fallbackMenus = [
   {
@@ -81,11 +71,14 @@ function getWeekDays(date: Date): Date[] {
 }
 
 export default function MealPlannerPage() {
-  const searchParams = useSearchParams();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedDayKey, setSelectedDayKey] = useState<string>("");
-  const [storage, setStorage] = useState<MealStorage>({});
+  const [weekMeals, setWeekMeals] = useState<WeekMeals>({});
+  const [loadingWeek, setLoadingWeek] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [shouldQuickAdd, setShouldQuickAdd] = useState(false);
   const [draft, setDraft] = useState<DraftMeals>({
     breakfast: "",
     lunch: "",
@@ -100,31 +93,53 @@ export default function MealPlannerPage() {
   const selectedWeekKey = format(weekDays[0], "yyyy-MM-dd");
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved) as MealStorage;
-      setStorage(parsed);
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
+    let isMounted = true;
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
-  }, [storage]);
+    async function loadWeekMeals() {
+      setLoadingWeek(true);
+      setErrorMessage("");
+      try {
+        const data = await getMealsForWeek(selectedWeekKey);
+        if (isMounted) {
+          setWeekMeals(data);
+        }
+      } catch (error) {
+        console.error("Error loading meals:", error);
+        if (isMounted) {
+          setWeekMeals({});
+          setErrorMessage("Khong the tai thuc don tu Firebase.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingWeek(false);
+        }
+      }
+    }
+
+    loadWeekMeals();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedWeekKey]);
 
   useEffect(() => {
     const activeDateKey = format(selectedDate, "yyyy-MM-dd");
     setSelectedDayKey(activeDateKey);
   }, [selectedDate]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const quickAdd = new URLSearchParams(window.location.search).get("quickAdd") === "1";
+    setShouldQuickAdd(quickAdd);
+  }, []);
+
   const selectedDayDate =
     weekDays.find((day) => format(day, "yyyy-MM-dd") === selectedDayKey) ||
     weekDays[0];
 
   const selectedMeals: DayMeals =
-    storage[selectedWeekKey]?.[selectedDayKey] ||
+    weekMeals[selectedDayKey] ||
     getDefaultMealsByDate(selectedDayDate);
 
   const openEditorWithCurrentMeals = useCallback(() => {
@@ -136,7 +151,7 @@ export default function MealPlannerPage() {
     setIsEditing(true);
   }, [selectedMeals]);
 
-  const handleOpenEditor = () => {
+  const handleOpenEditor = async () => {
     if (isEditing) {
       const updatedMeals: DayMeals = {
         breakfast: normalizeList(draft.breakfast),
@@ -144,13 +159,21 @@ export default function MealPlannerPage() {
         dinner: normalizeList(draft.dinner),
       };
 
-      setStorage((prev) => ({
-        ...prev,
-        [selectedWeekKey]: {
-          ...(prev[selectedWeekKey] || {}),
+      setIsSaving(true);
+      setErrorMessage("");
+      try {
+        await upsertDayMeals(selectedWeekKey, selectedDayKey, updatedMeals);
+        setWeekMeals((prev) => ({
+          ...prev,
           [selectedDayKey]: updatedMeals,
-        },
-      }));
+        }));
+      } catch (error) {
+        console.error("Error saving meals:", error);
+        setErrorMessage("Khong the luu thuc don len Firebase.");
+        return;
+      } finally {
+        setIsSaving(false);
+      }
 
       setIsEditing(false);
       return;
@@ -160,10 +183,10 @@ export default function MealPlannerPage() {
   };
 
   useEffect(() => {
-    const quickAdd = searchParams.get("quickAdd") === "1";
-    if (!quickAdd || isEditing) return;
+    if (!shouldQuickAdd || isEditing || loadingWeek) return;
     openEditorWithCurrentMeals();
-  }, [searchParams, isEditing, openEditorWithCurrentMeals]);
+    setShouldQuickAdd(false);
+  }, [shouldQuickAdd, isEditing, loadingWeek, openEditorWithCurrentMeals]);
 
   const handleDateChange = (value: string) => {
     if (!value) return;
@@ -206,12 +229,19 @@ export default function MealPlannerPage() {
             <button
               type="button"
               onClick={handleOpenEditor}
-              className="rounded-xl bg-love-pink px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+              disabled={isSaving || loadingWeek}
+              className="rounded-xl bg-love-pink px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
             >
-              {isEditing ? "Lưu thực đơn" : "Cập nhật thực đơn"}
+              {isSaving ? "Đang lưu..." : isEditing ? "Lưu thực đơn" : "Cập nhật thực đơn"}
             </button>
           </div>
         </div>
+
+        {errorMessage && (
+          <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {errorMessage}
+          </p>
+        )}
 
         <div className="grid gap-4 grid-cols-[50px_1fr] sm:grid-cols-[170px_1fr]">
           <aside className="sm:p-2">
@@ -252,6 +282,10 @@ export default function MealPlannerPage() {
             <h2 className="mb-3 text-lg font-bold text-love-pink">
               {format(selectedDayDate, "EEEE, MMM d")}
             </h2>
+
+            {loadingWeek && (
+              <p className="mb-3 text-sm text-love-dot">Dang tai du lieu tu Firebase...</p>
+            )}
 
             {!isEditing && (
               <div className="space-y-3">
