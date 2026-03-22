@@ -22,7 +22,6 @@ import {
 import TimeCounter from "./components/TimeCounter";
 import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
-import SecretButton from "@/components/SecretButton";
 import { validatePin } from "./actions";
 
 export default function LoveCounterPage() {
@@ -383,9 +382,6 @@ export default function LoveCounterPage() {
           </div>
         </div>
       </div>
-
-      {/* Secret button */}
-      <SecretButton targetRoute="/room-bill/dashboard" />
     </div>
   );
 }

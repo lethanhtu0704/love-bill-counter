@@ -236,7 +236,7 @@ export default function BillFormModal({ bills, onClose, onCreated }: BillFormMod
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all cursor-pointer disabled:opacity-50 shadow-lg hover:shadow-xl transform active:scale-[0.99] mt-2 flex justify-center items-center gap-2"
+            className="w-full py-3.5 rounded-xl font-bold bg-bill-primary text-white hover:bg-bill-primary-hover active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex justify-center items-center gap-2"
           >
             {submitting ? (
               <>

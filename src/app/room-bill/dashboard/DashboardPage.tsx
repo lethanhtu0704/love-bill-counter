@@ -12,7 +12,6 @@ import BillFormModal from "./components/BillFormModal";
 import EditBillModal from "./components/EditBillModal";
 import RatesModal from "./components/RatesModal";
 import ConfirmDeleteModal from "./components/ConfirmDeleteModal";
-import SecretButton from "@/components/SecretButton";
 
 export default function RoomBillDashboard() {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -232,9 +231,6 @@ export default function RoomBillDashboard() {
           />
         )}
       </AnimatePresence>
-
-      {/* Secret button */}
-      <SecretButton targetRoute="/love-counter" />
     </div>
   );
 }

@@ -7,19 +7,13 @@
   --color-love-dot: #966F60;
   --color-love-paper-shadow: rgba(139, 94, 82, 0.3);
 
-  --color-bill-primary: #4F46E5;
-  /* Indigo-600 */
-  --color-bill-primary-hover: #4338ca;
-  /* Indigo-700 */
-  --color-bill-bg: #F3F4F6;
-  /* Gray-100 */
+  --color-bill-primary: #CB7D7C;
+  --color-bill-primary-hover: #a23d69;
+  --color-bill-bg: #f4eee8;
   --color-bill-white: #ffffff;
-  --color-bill-text-dark: #111827;
-  /* Gray-900 */
-  --color-bill-text-gray: #6B7280;
-  /* Gray-500 */
-  --color-bill-border: #E5E7EB;
-  /* Gray-200 */
+  --color-bill-text-dark: #3a2a2f;
+  --color-bill-text-gray: #966F60;
+  --color-bill-border: #e2d5cb;
 
   --pink: #ecb2ba;
   --pink-dark: #c6939a;
