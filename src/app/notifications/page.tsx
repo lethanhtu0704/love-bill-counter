@@ -42,21 +42,21 @@ export default function NotificationsPage() {
     () => [
       {
         id: "meal-plan-reminder",
-        title: "Weekly Meal Plan",
-        body: "Check and update your meal plan for today.",
-        timeLabel: `Today, ${format(new Date(), "HH:mm")}`,
+        title: "Bữa ăn hôm nay",
+        body: "Kiểm tra và cập nhật kế hoạch bữa ăn cho hôm nay.",
+        timeLabel: `Hôm nay, ${format(new Date(), "HH:mm")}`,
       },
       {
         id: "shopping-reminder",
-        title: "Grocery Reminder",
-        body: "Review your meals and prepare the shopping list.",
-        timeLabel: "Every Sunday",
+        title: "Nhắc nhở mua sắm",
+        body: "Xem lại kế hoạch bữa ăn và chuẩn bị danh sách mua sắm.",
+        timeLabel: "Mỗi Chủ Nhật",
       },
       {
         id: "love-reminder",
         title: "Love Counter",
-        body: "You have milestones worth celebrating this week.",
-        timeLabel: "Pinned",
+        body: "Bạn có những cột mốc đáng ăn mừng trong tuần này.",
+        timeLabel: "Đã ghim",
       },
     ],
     []
@@ -94,10 +94,10 @@ export default function NotificationsPage() {
       <div className="mx-auto w-full max-w-3xl rounded-3xl border border-love-brown/15 bg-white/85 p-4 shadow-lg backdrop-blur-sm sm:p-6">
         <header className="mb-5">
           <h1 className="text-2xl font-bold text-love-brown font-[family-name:var(--font-playfair)]">
-            Notifications
+            Thông báo
           </h1>
           <p className="mt-1 text-sm text-love-dot/90">
-            Manage reminders for your meal planner and milestones.
+            Quản lý nhắc nhở cho kế hoạch bữa ăn.
           </p>
         </header>
 

@@ -154,7 +154,7 @@ export default function BottomNavBar() {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md h-16 bg-[#1a1a1a] rounded-3xl flex items-center justify-around px-2 shadow-2xl">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md h-16 bg-[#1a1a1a] rounded-3xl flex items-center justify-around px-2 shadow-2xl">
       {navItems.map((item) => {
         const isActive = item.isActive(pathname, quickAddMode);
         const Icon = item.icon;

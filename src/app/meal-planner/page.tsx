@@ -13,39 +13,39 @@ type DraftMeals = {
 
 const fallbackMenus = [
   {
-    breakfast: ["Không có dữ liệu"],
-    lunch: ["Chicken Wrap", "Caesar Salad"],
-    dinner: ["Tomato Pasta", "Garlic Bread"],   
+    breakfast: [""],
+    lunch: [""],
+    dinner: [""],   
   },
   {
-    breakfast: ["Oatmeal & Banana", "Boiled Egg"],
-    lunch: ["Rice Bowl", "Sauteed Vegetables"],
-    dinner: ["Salmon Steak", "Mashed Potatoes"],
+    breakfast: [""],
+    lunch: [""],
+    dinner: [""],
   },
   {
-    breakfast: ["Granola with Milk", "Apple Slices"],
-    lunch: ["Pho Bo", "Fresh Herbs"],
-    dinner: ["Chicken Curry", "Steamed Rice"],
+    breakfast: [""],
+    lunch: [""],
+    dinner: [""],
   },
   {
-    breakfast: ["Pancakes", "Honey & Almonds"],
-    lunch: ["Banh Mi", "Fruit Cup"],
-    dinner: ["Beef Stir Fry", "Broccoli"],
+    breakfast: [""],
+    lunch: [""],
+    dinner: [""],
   },
   {
-    breakfast: ["Avocado Toast", "Orange Juice"],
-    lunch: ["Soba Noodles", "Edamame"],
-    dinner: ["Shrimp Fried Rice", "Kimchi"],
+    breakfast: [""],
+    lunch: [""],
+    dinner: [""],
   },
   {
-    breakfast: ["Croissant", "Cheese Omelet"],
-    lunch: ["Bun Cha", "Pickled Veggies"],
-    dinner: ["Mushroom Soup", "Grilled Chicken"],
+    breakfast: [""],
+    lunch: [""],
+    dinner: [""],
   },
   {
-    breakfast: ["Chia Pudding", "Mixed Nuts"],
-    lunch: ["Quinoa Bowl", "Roasted Pumpkin"],
-    dinner: ["BBQ Pork", "Green Salad"],
+    breakfast: [""],
+    lunch: [""],
+    dinner: [""],
   },
 ] satisfies DayMeals[];
 
@@ -142,6 +142,14 @@ export default function MealPlannerPage() {
     weekMeals[selectedDayKey] ||
     getDefaultMealsByDate(selectedDayDate);
 
+  const blurActiveInput = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const active = document.activeElement as HTMLElement | null;
+    if (active && (active.tagName === "TEXTAREA" || active.tagName === "INPUT")) {
+      active.blur();
+    }
+  }, []);
+
   const openEditorWithCurrentMeals = useCallback(() => {
     setDraft({
       breakfast: toTextarea(selectedMeals.breakfast),
@@ -152,6 +160,8 @@ export default function MealPlannerPage() {
   }, [selectedMeals]);
 
   const handleOpenEditor = async () => {
+    blurActiveInput();
+
     if (isEditing) {
       const updatedMeals: DayMeals = {
         breakfast: normalizeList(draft.breakfast),
@@ -190,6 +200,7 @@ export default function MealPlannerPage() {
 
   const handleDateChange = (value: string) => {
     if (!value) return;
+    blurActiveInput();
     const next = new Date(`${value}T00:00:00`);
     setSelectedDate(next);
   };
@@ -219,7 +230,7 @@ export default function MealPlannerPage() {
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-love-brown/20 bg-white px-3 py-2 text-sm font-medium text-love-brown shadow-sm">
               <input
                 type="date"
-                className="sr-only"
+                className="sr-only md:not-sr-only"
                 value={format(selectedDate, "yyyy-MM-dd")}
                 onChange={(event) => handleDateChange(event.target.value)}
               />
@@ -232,7 +243,7 @@ export default function MealPlannerPage() {
               disabled={isSaving || loadingWeek}
               className="rounded-xl bg-love-pink px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
             >
-              {isSaving ? "Đang lưu..." : isEditing ? "Lưu thực đơn" : "Cập nhật thực đơn"}
+              {isSaving ? "Đang lưu..." : isEditing ? "Lưu thực đơn" : "Cập nhật thực đơn 🛎️"}
             </button>
           </div>
         </div>
@@ -254,6 +265,7 @@ export default function MealPlannerPage() {
                     <button
                       type="button"
                       onClick={() => {
+                        blurActiveInput();
                         setSelectedDayKey(dayKey);
                         setIsEditing(false);
                       }}
@@ -284,7 +296,7 @@ export default function MealPlannerPage() {
             </h2>
 
             {loadingWeek && (
-              <p className="mb-3 text-sm text-love-dot">Dang tai du lieu tu Firebase...</p>
+              <p className="mb-3 text-sm text-love-dot">Đang tải dữ liệu...</p>
             )}
 
             {!isEditing && (
@@ -300,7 +312,7 @@ export default function MealPlannerPage() {
                     <ul className="space-y-1 text-sm text-love-dot">
                       {(selectedMeals[block.key].length
                         ? selectedMeals[block.key]
-                        : ["No food yet"]).map((food, index) => (
+                        : ["Chưa có món ăn"]).map((food, index) => (
                         <li key={`${food}-${index}`} className="flex items-start gap-2">
                           <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-love-pink/70" />
                           <span>{food}</span>
@@ -331,8 +343,8 @@ export default function MealPlannerPage() {
                           [block.key]: event.target.value,
                         }))
                       }
-                      className="w-full resize-none rounded-lg border border-love-brown/20 bg-white px-3 py-2 text-sm text-love-dot outline-none focus:border-love-pink"
-                      placeholder="One line = one food. Max 3 foods."
+                      className="w-full resize-none rounded-lg border border-love-brown/20 bg-white px-3 py-2 text-base text-love-dot outline-none focus:border-love-pink"
+                      placeholder="Một dòng là một món ăn. Tối đa 3 món."
                     />
                   </article>
                 ))}
