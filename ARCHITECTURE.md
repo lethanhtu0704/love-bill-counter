@@ -13,6 +13,7 @@ A unified Next.js web application that bundles three primary features:
 - **Styling:** Tailwind CSS (v4) and general CSS for specific components (`MilestoneCard.css`).
 - **Animations:** Framer Motion (`framer-motion`).
 - **Date Utilities:** `date-fns` for robust date math and formatting.
+- **AI Integration:** Google GenAI SDK (`@google/genai`) for Gemini-powered meal plan generation via server-side Route Handler.
 - **Utilities:** `react-to-print` (useful for printing or exporting Room Bill receipts).
 
 ## 3. Directory Structure
@@ -21,6 +22,8 @@ A unified Next.js web application that bundles three primary features:
 src/
 ├── app/                  # Next.js App Router root
 │   ├── api/              # API Routes (Backend logic)
+│   │   ├── push/         # Push notification endpoints
+│   │   └── meal-planner/ # Meal planner AI generation endpoint (Gemini)
 │   ├── love-counter/     # Feature 1: Love Counter pages & components
 │   ├── meal-planner/     # Feature 2: Weekly meal planning pages & components
 │   ├── room-bill/        # Feature 3: Room Bill pages & components
@@ -44,6 +47,7 @@ src/
 ### B. The Meal Planner (`src/app/meal-planner/`)
 - **Purpose:** Plan meals by week, choose a specific day, and maintain breakfast/lunch/dinner entries.
 - **Flow:** User picks a week/date -> App loads week data from Firebase Realtime Database -> User edits meals -> App writes updates back to Firebase under the selected week/day key.
+- **AI Generation:** Users can generate a full week's meal plan via Gemini AI. A popup collects a free-text prompt (Vietnamese or English), sends it to `POST /api/meal-planner/generate` (Next.js Route Handler), which calls Gemini with a nutritionist system instruction and `responseMimeType: "application/json"` to enforce strict JSON output matching the `DayMeals` type. The response is validated server-side before returning to the client, then saved day-by-day to Firebase.
 - **Storage Path:** `meal_planner/{weekStartKey}/{dayKey}` where keys use `yyyy-MM-dd`.
 
 ### C. The Room Bill Calculator (`src/app/room-bill/`)
