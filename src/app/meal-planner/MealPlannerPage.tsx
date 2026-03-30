@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { addDays, format, startOfWeek } from "date-fns";
 import { getMealsForWeek, upsertDayMeals } from "@/lib/services";
 import type { DayMeals, WeekMeals } from "@/lib/types";
+
+const DotLottiePlayer = dynamic(
+  () => import("@lottiefiles/dotlottie-react").then((mod) => mod.DotLottieReact),
+  { ssr: false }
+);
 
 type DraftMeals = {
   breakfast: string;
@@ -438,7 +444,7 @@ export default function MealPlannerPage() {
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               maxLength={2000}
-              className="w-full resize-none rounded-xl border border-love-brown/20 bg-love-paper/30 px-3 py-2 text-sm text-love-dot outline-none focus:border-love-pink min-h-[150px] sm:min-h-0 sm:rows-5"
+              className="w-full resize-none rounded-xl border border-love-brown/20 bg-love-paper/30 px-3 py-2 text-base text-love-dot outline-none focus:border-love-pink min-h-[150px] sm:min-h-0 sm:rows-5"
               placeholder="Ví dụ: Thiết kế thực đơn giảm cân cho nam giới..."
             />
             {aiError ? (
@@ -478,7 +484,13 @@ export default function MealPlannerPage() {
 
             {ingredientsLoading ? (
               <div className="py-12 text-center text-love-dot flex flex-col items-center gap-4">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-love-brown border-t-love-pink" />
+                <div className="h-40 w-40">
+                  <DotLottiePlayer
+                    src="/animations/recipes-loading.json"
+                    loop
+                    autoplay
+                  />
+                </div>
                 <p className="text-sm">Gemini đang tổng hợp nguyên liệu thiết yếu...</p>
               </div>
             ) : ingredientsList ? (

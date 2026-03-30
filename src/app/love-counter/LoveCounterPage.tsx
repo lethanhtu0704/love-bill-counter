@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   getLoveConfig,
   updateLoveConfig,
@@ -23,6 +24,11 @@ import TimeCounter from "./components/TimeCounter";
 import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
 import { validatePin } from "./actions";
+
+const DotLottiePlayer = dynamic(
+  () => import("@lottiefiles/dotlottie-react").then((mod) => mod.DotLottieReact),
+  { ssr: false }
+);
 
 export default function LoveCounterPage() {
   // ── Auth ──────────────────────────────────────────────────────────────
@@ -317,20 +323,21 @@ export default function LoveCounterPage() {
           {/* Central dashed line */}
 
           {milestonesLoading ? (
-            <div className="flex flex-col items-center gap-4 py-10">
+            <div className="flex flex-col items-center gap-4 py-10 w-full max-w-[560px] mx-auto">
+              <div className="h-40 w-40">
+                <DotLottiePlayer
+                  src="/animations/cat-loading.json"
+                  loop
+                  autoplay
+                />
+              </div>
               <motion.div
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-                className="text-love-brown/50 text-sm italic"
+                className="text-love-brown/60 text-sm italic font-medium"
               >
-                Đang tải kỷ niệm...
+                Mèo đang kéo vali kỷ niệm tới...
               </motion.div>
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-full max-w-[560px] h-28 rounded-2xl bg-love-paper/60 animate-pulse"
-                />
-              ))}
             </div>
           ) : (
             milestones.map((m, i) => (
