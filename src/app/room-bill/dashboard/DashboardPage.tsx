@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBills, deleteBill, getRates } from "@/lib/services";
-import { formatCurrency, formatMonthYear } from "@/lib/utils";
+import { formatMonthYear } from "@/lib/utils";
 import type { Bill, Rates } from "@/lib/types";
 import BillTable from "./components/BillTable";
 import BillCardList from "./components/BillCardList";
-import BillDetailModal from "./components/BillDetailModal";
-import BillFormModal from "./components/BillFormModal";
-import EditBillModal from "./components/EditBillModal";
-import RatesModal from "./components/RatesModal";
-import ConfirmDeleteModal from "./components/ConfirmDeleteModal";
+
+const BillDetailModal = dynamic(() => import("./components/BillDetailModal"));
+const BillFormModal = dynamic(() => import("./components/BillFormModal"));
+const EditBillModal = dynamic(() => import("./components/EditBillModal"));
+const RatesModal = dynamic(() => import("./components/RatesModal"));
+const ConfirmDeleteModal = dynamic(() => import("./components/ConfirmDeleteModal"));
 
 export default function RoomBillDashboard() {
   const [bills, setBills] = useState<Bill[]>([]);

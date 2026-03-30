@@ -11,7 +11,7 @@ A unified Next.js web application that bundles three primary features:
 - **PWA Integration:** Serwist (`@serwist/turbopack`) for Service Worker (`src/app/sw.ts`), offline support (`src/app/~offline/page.tsx`), and caching.
 - **Backend & Database:** Firebase (Client SDK: `firebase`, Server SDK: `firebase-admin`).
 - **Styling:** Tailwind CSS (v4) and general CSS for specific components (`MilestoneCard.css`).
-- **Animations:** Framer Motion (`framer-motion`).
+- **Animations:** Framer Motion (`framer-motion`) — used only in feature pages (love counter, room bill modals), **not** in the root layout shell to minimize initial bundle size.
 - **Date Utilities:** `date-fns` for robust date math and formatting.
 - **AI Integration:** Google GenAI SDK (`@google/genai`) for Gemini-powered meal plan generation via server-side Route Handler.
 - **Utilities:** `react-to-print` (useful for printing or exporting Room Bill receipts).
@@ -26,49 +26,92 @@ src/
 │   │   └── meal-planner/ # Meal planner AI generation endpoint (Gemini)
 │   ├── love-counter/     # Feature 1: Love Counter pages & components
 │   ├── meal-planner/     # Feature 2: Weekly meal planning pages & components
+│   │   ├── page.tsx      # Thin wrapper with next/dynamic import
+│   │   └── MealPlannerPage.tsx  # Main page component (client-only)
 │   ├── room-bill/        # Feature 3: Room Bill pages & components
+│   │   └── dashboard/
+│   │       ├── page.tsx           # Thin wrapper with next/dynamic import
+│   │       ├── DashboardPage.tsx  # Main page component
+│   │       └── components/
+│   │           ├── BillFormFields.tsx   # Shared form fields (create + edit)
+│   │           ├── BillFormModal.tsx    # Create bill (uses ModalOverlay + BillFormFields)
+│   │           ├── EditBillModal.tsx    # Edit bill (uses ModalOverlay + BillFormFields)
+│   │           ├── BillDetailModal.tsx  # View receipt
+│   │           ├── RatesModal.tsx       # Manage service rates
+│   │           ├── ConfirmDeleteModal.tsx
+│   │           ├── BillTable.tsx        # Desktop table
+│   │           └── BillCardList.tsx     # Mobile card list
 │   ├── serwist/          # Serwist PWA API endpoints
 │   ├── ~offline/         # PWA fallback offline page
 │   ├── sw.ts             # Service worker entrypoint
 │   └── serwist.ts        # Serwist configuration
-├── components/           # Shared global components (e.g., Receipt, SecretButton)
+├── components/           # Shared global components
+│   ├── BottomNavBar.tsx  # Navigation bar (CSS transitions, no framer-motion)
+│   ├── ModalOverlay.tsx  # Shared animated modal overlay wrapper
+│   ├── Receipt.tsx       # Bill receipt display
+│   └── icons.tsx         # Shared SVG icon components
 ├── lib/                  # Library functions, constants, and Firebase configs
+│   ├── constants.ts
+│   ├── firebase.ts       # Client-side Firebase initialization
+│   ├── firebaseAdmin.ts  # Server-side Firebase Admin SDK
+│   ├── push.ts           # FCM push notification client utilities
+│   ├── services.ts       # Firebase RTDB service functions (typed, no `any`)
+│   ├── types.ts          # TypeScript interfaces for all data models
+│   └── utils.ts          # Formatting and helper utilities
 ```
 
-## 4. Key Features & Flow
+## 4. Key Architecture Patterns
+
+### A. Code-Splitting & Bundle Optimization
+- All three feature pages use **`next/dynamic`** with `{ ssr: false }` for client-only rendering, reducing the initial server-rendered bundle.
+- Room Bill **modals** are also dynamically imported on demand (loaded only when opened).
+- **BottomNavBar** uses pure CSS transitions instead of framer-motion to keep the root layout bundle lean.
+- SVG icons are extracted into a shared `icons.tsx` file and imported where needed.
+
+### B. Shared Component Patterns
+- **`ModalOverlay`**: A reusable animated overlay + container component used by all Room Bill modals. Accepts `children` for composition (no boolean prop variants).
+- **`BillFormFields`**: Shared form fields component used by both `BillFormModal` (create) and `EditBillModal` (edit), eliminating ~300 lines of duplication. Accepts an `accentColor` prop for visual differentiation.
+
+### C. Performance Patterns Applied
+- **Parallel async operations** (`Promise.all`): AI meal generation saves all 7 days concurrently instead of sequentially. Push notification token cleanup avoids redundant database reads.
+- **Derived state over effects**: Values computed from props/state are derived during render instead of synced via `useEffect` + `setState`.
+- **Lazy state initialization**: `useState(() => ...)` for expensive initial values (e.g., browser API checks).
+- **Functional setState**: Used consistently to prevent stale closures and stabilize callback references.
+- **`React.memo`**: Applied to `MilestoneCard` which receives stable callbacks from the parent.
+- **Stable callbacks**: `useCallback` with functional setState eliminates unnecessary re-renders of memoized children.
+
+## 5. Key Features & Flow
 
 ### A. The Love Counter (`src/app/love-counter/`)
 - **Purpose:** Track time together and display milestones.
 - **Components:** 
   - `TimeCounter.tsx`: Processes the start date and visually ticks the time (years, months, days, etc.).
-  - `MilestoneCard.tsx` & `DatePickerPopover.tsx`: UI for milestone display and date selection.
-- **Flow:** Users visit the page -> The app retrieves the "start date" (via `actions.ts` or database) -> The `TimeCounter` calculates the delta -> `framer-motion` potentially animates these milestones.
+  - `MilestoneCard.tsx` (memoized): UI for milestone display, inline editing, and image upload.
+  - `DatePickerPopover.tsx`: Custom date selector calendar.
+- **Flow:** PIN authentication → Load config + milestones (config first for fast loading, milestones in background) → `TimeCounter` calculates delta → milestones shown in alternating timeline layout.
 
 ### B. The Meal Planner (`src/app/meal-planner/`)
 - **Purpose:** Plan meals by week, choose a specific day, and maintain breakfast/lunch/dinner entries.
-- **Flow:** User picks a week/date -> App loads week data from Firebase Realtime Database -> User edits meals -> App writes updates back to Firebase under the selected week/day key.
-- **AI Generation:** Users can generate a full week's meal plan via Gemini AI. A popup collects a free-text prompt (Vietnamese or English), sends it to `POST /api/meal-planner/generate` (Next.js Route Handler), which calls Gemini with a nutritionist system instruction and `responseMimeType: "application/json"` to enforce strict JSON output matching the `DayMeals` type. The response is validated server-side before returning to the client, then saved day-by-day to Firebase.
+- **Flow:** User picks a week/date → loads week data from Firebase RTDB → edits meals → saves to Firebase.
+- **AI Generation:** Gemini AI generates a full week's plan via `POST /api/meal-planner/generate`. Saves 7 days **in parallel** via `Promise.all`.
+- **Ingredients:** Gemini AI extracts shopping list from current week's meals via `POST /api/meal-planner/ingredients`. Results are cached client-side by meals hash.
 - **Storage Path:** `meal_planner/{weekStartKey}/{dayKey}` where keys use `yyyy-MM-dd`.
 
 ### C. The Room Bill Calculator (`src/app/room-bill/`)
 - **Purpose:** Manage monthly housing expenses, calculate totals, and review previous bills.
-- **Components:** 
-  - Dashboard (`DashboardPage.tsx` with `BillCardList` / `BillTable`) displays the overview.
-  - Modals (`BillFormModal.tsx`, `EditBillModal.tsx`, `ConfirmDeleteModal.tsx`) handle create/update/delete flows.
-  - `RatesModal.tsx`: Manages settings or base rates (e.g., electricity/water price per unit).
-  - Shared `Receipt.tsx` (in `src/components/`): Likely uses `react-to-print` to generate snapshot receipts of calculated bills.
-- **Flow:** Users log into the Dashboard -> Click "Add Bill" -> Fill out the `BillFormModal` with meter readings -> The app calculates costs using base rates -> Saved to Firebase -> Displays on `BillTable` -> Can be exported as a receipt.
+- **Components:** Dashboard with `BillTable` (desktop) / `BillCardList` (mobile). Modals loaded on demand via `next/dynamic`.
+- **Flow:** Dashboard loads bills + rates in parallel → Create/Edit via shared `BillFormFields` component → Receipt display via `Receipt.tsx`.
 
 ### D. Push Notifications (`src/app/api/push/`)
-- **Purpose:** Engage users by alerting them about relationship milestones or bill reminders.
-- **Flow:** The client subscribes via `api/push/subscribe/route.ts` (handled through `lib/push.ts`). The `notify-milestone/` endpoint can be triggered manually or via a CRON job to dispatch notifications using `firebase-admin`.
+- **Purpose:** Engage users by alerting them about relationship milestones.
+- **Flow:** Client subscribes via `api/push/subscribe` → Token stored hashed in RTDB → `notify-milestone/` dispatches via FCM → Invalid tokens cleaned up from cached snapshot (no redundant reads).
 
-## 5. Firebase & Data Flow
-- `lib/firebase.ts`: Initializes the client-side Firebase app (Auth, Firestore, Messaging).
-- `lib/firebaseAdmin.ts`: Initializes the secure server-side SDK (used in API routes for secure operations and push notifications).
-- `lib/services.ts`: Wraps Firebase Realtime Database calls into reusable helper functions for retrieving and mutating app data (Love Counter, Room Bills, Meal Planner).
-- **Server Actions vs API Routes:** The app utilizes both Server Actions (`love-counter/actions.ts`) for direct UI mutations and generic API routes (`src/app/api/`) for external hooks/webhooks.
+## 6. Firebase & Data Flow
+- `lib/firebase.ts`: Initializes the client-side Firebase app.
+- `lib/firebaseAdmin.ts`: Initializes the secure server-side SDK (used in API routes).
+- `lib/services.ts`: Wraps Firebase Realtime Database calls into typed helper functions. All update operations use `Record<string, unknown>` instead of `any`.
+- **Server Actions vs API Routes:** Server Actions (`love-counter/actions.ts`) for direct UI mutations; API routes (`src/app/api/`) for external hooks and AI integrations.
 
-## 6. Development & Deployment Notes
-- **PWA:** The app is completely offline-capable. Any new static assets or pages should be registered in `sw.ts` or `serwist.ts`.
-- **Environment Context:** Due to Firebase Admin, ensure proper service account credentials are provided to the environment variables (often `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`).
+## 7. Development & Deployment Notes
+- **PWA:** The app is completely offline-capable. New static assets or pages should be registered in `sw.ts` or `serwist.ts`.
+- **Environment Variables:** Firebase Admin requires `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`. Gemini AI requires `GEMINI_API_KEY`.

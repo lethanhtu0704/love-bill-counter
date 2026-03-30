@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, memo } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -23,7 +23,7 @@ const CHARM_POSITIONS = [
   { className: "top-1/2 -right-5 -translate-y-1/2", rotate: "" },
 ];
 
-export default function MilestoneCard({
+export default memo(function MilestoneCard({
   milestone,
   index,
   onUpdate,
@@ -241,4 +241,4 @@ export default function MilestoneCard({
 
     </motion.div>
   );
-}
+})

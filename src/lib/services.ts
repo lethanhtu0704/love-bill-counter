@@ -6,8 +6,6 @@ import {
   update,
   remove,
   set,
-  query,
-  orderByChild,
 } from "firebase/database";
 import { db } from "./firebase";
 import { COLLECTIONS, DOCS, DEFAULT_RATES, DEFAULT_START_DATE } from "./constants";
@@ -51,8 +49,9 @@ export async function getLoveConfig(): Promise<LoveConfig> {
 }
 
 export async function updateLoveConfig(startDate: Date): Promise<void> {
-  const updates: any = {};
-  updates[`/${COLLECTIONS.LOVE_COUNTER}/${DOCS.LOVE_CONFIG}/startDate`] = startDate.getTime();
+  const updates: Record<string, number> = {
+    [`/${COLLECTIONS.LOVE_COUNTER}/${DOCS.LOVE_CONFIG}/startDate`]: startDate.getTime(),
+  };
   await update(ref(db), updates);
 }
 
@@ -89,11 +88,10 @@ export async function updateMilestone(
   id: string,
   data: Partial<Milestone>
 ): Promise<void> {
-  const updates: any = {};
-  Object.keys(data).forEach((key) => {
-    // @ts-ignore
-    updates[`/${COLLECTIONS.MILESTONES}/${id}/${key}`] = data[key];
-  });
+  const updates: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    updates[`/${COLLECTIONS.MILESTONES}/${id}/${key}`] = value;
+  }
   await update(ref(db), updates);
 }
 
@@ -125,8 +123,9 @@ export async function getRates(): Promise<Rates> {
 }
 
 export async function updateRates(data: RatesFormData): Promise<void> {
-  const updates: any = {};
-  updates[`/${COLLECTIONS.SETTINGS}/${DOCS.RATES}`] = data;
+  const updates: Record<string, RatesFormData> = {
+    [`/${COLLECTIONS.SETTINGS}/${DOCS.RATES}`]: data,
+  };
   await update(ref(db), updates);
 }
 
@@ -224,9 +223,7 @@ export async function updateBill(
     existingBill.wifiPrice +
     existingBill.garbagePrice;
 
-  const updates: any = {};
-  const updatedData = {
-    // Only update editable fields + calculated values + timestamp
+  const updatedData: Record<string, unknown> = {
     month: formData.month,
     year: formData.year,
     billDate: new Date(formData.billDate).getTime(),
@@ -242,10 +239,10 @@ export async function updateBill(
     updatedAt: Date.now(),
   };
 
-  Object.keys(updatedData).forEach(key => {
-    // @ts-ignore
-    updates[`/${COLLECTIONS.BILLS}/${id}/${key}`] = updatedData[key];
-  });
+  const updates: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updatedData)) {
+    updates[`/${COLLECTIONS.BILLS}/${id}/${key}`] = value;
+  }
 
   await update(ref(db), updates);
 }

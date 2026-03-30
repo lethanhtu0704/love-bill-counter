@@ -59,14 +59,10 @@ export async function POST() {
   });
 
   if (invalidTokens.length > 0) {
-    const snap2 = await db.ref("pushTokens").get();
-    const tokenRecords2 = (snap2.val() || {}) as Record<
-      string,
-      { token?: string }
-    >;
+    const invalidSet = new Set(invalidTokens);
     const deletes: Promise<void>[] = [];
-    for (const [key, rec] of Object.entries(tokenRecords2)) {
-      if (rec?.token && invalidTokens.includes(rec.token)) {
+    for (const [key, rec] of Object.entries(tokenRecords)) {
+      if (rec?.token && invalidSet.has(rec.token)) {
         deletes.push(db.ref(`pushTokens/${key}`).remove());
       }
     }

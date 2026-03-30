@@ -25,17 +25,4 @@ export function getRandomCharm(): string {
   return `/assets/charm${idx}.png`;
 }
 
-export function getRandomCharmPosition(): {
-  position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
-  rotation: number;
-} {
-  const positions = [
-    "top-left",
-    "top-right",
-    "bottom-left",
-    "bottom-right",
-  ] as const;
-  const pos = positions[Math.floor(Math.random() * positions.length)];
-  const rot = Math.floor(Math.random() * 40) - 20; // -20 to 20 degrees
-  return { position: pos, rotation: rot };
-}
+

@@ -31,7 +31,7 @@ function createBrowserNotification(title: string, body: string) {
 }
 
 export default function NotificationsPage() {
-  const [permissionState, setPermissionState] = useState<NotificationPermission | "unsupported">(
+  const [permissionState, setPermissionState] = useState<NotificationPermission | "unsupported">(() =>
     typeof window !== "undefined" && "Notification" in window
       ? Notification.permission
       : "unsupported"

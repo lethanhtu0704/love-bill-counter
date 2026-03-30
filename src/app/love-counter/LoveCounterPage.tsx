@@ -11,7 +11,7 @@ import {
   deleteMilestone,
   uploadMilestoneImage,
 } from "@/lib/services";
-import { getRandomCharm, getRandomCharmPosition } from "@/lib/utils";
+import { getRandomCharm } from "@/lib/utils";
 import { TIME_FORMATS, type TimeFormat } from "@/lib/constants";
 import type { Milestone } from "@/lib/types";
 import {
@@ -109,7 +109,6 @@ export default function LoveCounterPage() {
     });
 
     const charm = getRandomCharm();
-    // unused: const charmPos = getRandomCharmPosition();
     try {
       const newMilestone: Omit<Milestone, "id" | "createdAt"> = {
         title: "",
@@ -143,7 +142,7 @@ export default function LoveCounterPage() {
     }
   };
 
-  const handleUpdateMilestone = async (
+  const handleUpdateMilestone = useCallback(async (
     id: string,
     data: Partial<Milestone>
   ) => {
@@ -155,20 +154,19 @@ export default function LoveCounterPage() {
     } catch (err) {
       console.error("Error updating milestone:", err);
     }
-  };
+  }, []);
 
-  const handleDeleteMilestone = async (id: string) => {
+  const handleDeleteMilestone = useCallback(async (id: string) => {
     try {
       await deleteMilestone(id);
       setMilestones((prev) => prev.filter((m) => m.id !== id));
     } catch (err) {
       console.error("Error deleting milestone:", err);
     }
-  };
+  }, []);
 
-  const handleImageUpload = async (milestoneId: string, file: File) => {
+  const handleImageUpload = useCallback(async (milestoneId: string, file: File) => {
     try {
-      // Returns base64 string
       const url = await uploadMilestoneImage(file, milestoneId);
       await updateMilestone(milestoneId, { imageUrl: url });
       setMilestones((prev) =>
@@ -177,7 +175,7 @@ export default function LoveCounterPage() {
     } catch (err) {
       console.error("Error uploading image:", err);
     }
-  };
+  }, []);
 
   // ── Auth screen ───────────────────────────────────────────────────────
   if (!authenticated) {
