@@ -13,6 +13,13 @@ type DraftMeals = {
 
 type GeneratedWeek = Record<string, DayMeals>;
 
+type IngredientList = {
+  meats_seafood?: string[];
+  vegetables?: string[];
+  carbs?: string[];
+  others?: string[];
+};
+
 const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 
 const DEFAULT_AI_PROMPT = `Bạn là nhà dinh dưỡng học. Thiết kế một thực đơn giảm cân cho nam giới ở Việt Nam, cân nặng 78kg cao 1m67, không ăn rau mùi. Nguyên liệu nên đảm bảo các tiêu chí sau : rẻ, dễ kiếm ở các khu chợ, không dùng các loại rau quá hăng như ngò, quế, ngò gai)`;
@@ -96,6 +103,12 @@ export default function MealPlannerPage() {
   const [aiPrompt, setAiPrompt] = useState(DEFAULT_AI_PROMPT);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+
+  // Ingredients generation state
+  const [showIngredientsModal, setShowIngredientsModal] = useState(false);
+  const [ingredientsLoading, setIngredientsLoading] = useState(false);
+  const [ingredientsList, setIngredientsList] = useState<IngredientList | null>(null);
+  const [lastFetchedMealsHash, setLastFetchedMealsHash] = useState("");
 
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   const weekRangeText = `${format(weekDays[0], "MMM d")} - ${format(
@@ -255,6 +268,41 @@ export default function MealPlannerPage() {
     }
   };
 
+  const handleViewIngredients = async () => {
+    setShowIngredientsModal(true);
+    
+    // Tạo hash đơn giản từ thực đơn hiện tại để kiểm tra cache
+    const currentMealsHash = JSON.stringify(weekMeals);
+    
+    // Nếu chưa có sự thay đổi thực đơn kể từ lần cuối fetch, lấy luôn kết quả cũ (Cache)
+    if (ingredientsList && currentMealsHash === lastFetchedMealsHash) {
+      return;
+    }
+
+    setIngredientsLoading(true);
+    try {
+      const res = await fetch("/api/meal-planner/ingredients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Gửi toàn bộ weekMeals lên AI
+        body: JSON.stringify({ weekMeals }),
+      });
+      const result = await res.json();
+      if (result.ok) {
+        setIngredientsList(result.data);
+        setLastFetchedMealsHash(currentMealsHash);
+      } else {
+        console.error("Lỗi lấy nguyên liệu", result.error);
+        setIngredientsList(null);
+      }
+    } catch (err) {
+      console.error("Lỗi lấy nguyên liệu", err);
+      setIngredientsList(null);
+    } finally {
+      setIngredientsLoading(false);
+    }
+  };
+
   const handleDateChange = (value: string) => {
     if (!value) return;
     blurActiveInput();
@@ -304,6 +352,15 @@ export default function MealPlannerPage() {
                 {isSaving ? "Đang lưu..." : isEditing ? "Lưu thực đơn" : "Cập nhật thực đơn 🛎️"}
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={handleViewIngredients}
+              disabled={loadingWeek || isSaving || isEditing}
+              className="w-full sm:w-auto rounded-xl border border-love-brown/20 bg-white px-4 py-2 text-sm font-semibold text-love-brown shadow-sm transition hover:bg-love-paper disabled:opacity-60 flex items-center justify-center gap-1"
+            >
+              🛒 Xem nguyên liệu
+            </button>
 
             <button
               type="button"
@@ -460,6 +517,76 @@ export default function MealPlannerPage() {
                 className="rounded-xl bg-love-pink px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
               >
                 {aiLoading ? "Đang tạo..." : "Tạo thực đơn"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ingredients Modal */}
+      {showIngredientsModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-love-brown/15 bg-white p-5 shadow-xl">
+            <h2 className="mb-3 text-xl font-bold text-love-brown font-[family-name:var(--font-playfair)]">
+              🛒 Danh sách đi chợ tuần này
+            </h2>
+
+            {ingredientsLoading ? (
+              <div className="py-12 text-center text-love-dot flex flex-col items-center gap-4">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-love-brown border-t-love-pink"></div>
+                <p className="text-sm">Gemini đang tổng hợp nguyên liệu thiết yếu...</p>
+              </div>
+            ) : ingredientsList ? (
+              <div className="space-y-5 mt-4">
+                {ingredientsList.meats_seafood && ingredientsList.meats_seafood.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-love-pink text-base mb-2">🥩 Thịt & Hải sản</h3>
+                    <ul className="list-disc pl-5 text-sm space-y-1.5 text-love-dot">
+                      {ingredientsList.meats_seafood.map(i => <li key={i}>{i}</li>)}
+                    </ul>
+                  </div>
+                )}
+                
+                {ingredientsList.vegetables && ingredientsList.vegetables.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-love-pink text-base mb-2">🥬 Rau củ & Trái cây</h3>
+                    <ul className="list-disc pl-5 text-sm space-y-1.5 text-love-dot">
+                      {ingredientsList.vegetables.map(i => <li key={i}>{i}</li>)}
+                    </ul>
+                  </div>
+                )}
+                
+                {ingredientsList.carbs && ingredientsList.carbs.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-love-pink text-base mb-2">🍚 Tinh bột</h3>
+                    <ul className="list-disc pl-5 text-sm space-y-1.5 text-love-dot">
+                      {ingredientsList.carbs.map(i => <li key={i}>{i}</li>)}
+                    </ul>
+                  </div>
+                )}
+                
+                {ingredientsList.others && ingredientsList.others.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-love-pink text-base mb-2">🥚 Khác</h3>
+                    <ul className="list-disc pl-5 text-sm space-y-1.5 text-love-dot">
+                      {ingredientsList.others.map(i => <li key={i}>{i}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+                <div className="py-8 text-center text-red-500">
+                  <p className="text-sm border border-red-200 bg-red-50 p-3 rounded-xl inline-block">Không thể tải danh sách nguyên liệu, vui lòng thử lại.</p>
+                </div>
+            )}
+
+            <div className="mt-8 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowIngredientsModal(false)}
+                className="rounded-xl bg-love-pink px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+              >
+                Đóng
               </button>
             </div>
           </div>
