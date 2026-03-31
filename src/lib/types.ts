@@ -89,3 +89,14 @@ export interface IngredientCache {
   data: IngredientList;
   mealsHash: string;
 }
+
+// ===== Music Player Types =====
+
+export interface Song {
+  id: string;
+  title: string;
+  artist: string;
+  imageUrl: string;
+  audioUrl: string;
+  duration: number; // seconds
+}

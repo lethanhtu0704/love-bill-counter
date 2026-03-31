@@ -42,3 +42,26 @@ html, body {
   margin: 0;
   padding: 0;
 }
+
+/* Music player range slider */
+.music-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #a23d69;
+  cursor: pointer;
+  border: 2px solid #f4eee8;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.music-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #a23d69;
+  cursor: pointer;
+  border: 2px solid #f4eee8;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}

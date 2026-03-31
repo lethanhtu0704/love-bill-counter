@@ -20,6 +20,7 @@ import type {
   WeekMeals,
   IngredientList,
   IngredientCache,
+  Song,
 } from "./types";
 
 // Helper to convert File to Base64
@@ -288,4 +289,20 @@ export async function saveIngredientsCache(
   mealsHash: string
 ): Promise<void> {
   await set(ref(db, `${COLLECTIONS.MEAL_PLANNER_INGREDIENTS}/${weekKey}`), { data, mealsHash });
+}
+
+// ===== Music Player Services =====
+
+export async function getSongs(): Promise<Song[]> {
+  const snapshot = await get(child(ref(db), COLLECTIONS.MUSIC));
+  if (!snapshot.exists()) return [];
+  const raw = snapshot.val();
+  // Firebase may return an array (numeric keys) or object
+  if (Array.isArray(raw)) {
+    return raw
+      .map((song, i) => song ? { id: String(i), ...song } as Song : null)
+      .filter((s): s is Song => s !== null);
+  }
+  const data = raw as Record<string, Omit<Song, "id">>;
+  return Object.entries(data).map(([id, song]) => ({ id, ...song }));
 }

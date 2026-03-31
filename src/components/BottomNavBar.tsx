@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ReactElement, SVGProps } from "react";
-import { HomeIcon, HeartIcon, PlusCircleIcon, UtensilsIcon, BellIcon } from "./icons";
+import { HomeIcon, HeartIcon, MusicIcon, UtensilsIcon, BellIcon } from "./icons";
 
 type NavItem = {
   id: string;
@@ -20,11 +20,11 @@ export default function BottomNavBar() {
   // Configuration for the 5 tabs
   const navItems: NavItem[] = [
     {
-      id: "quick-add",
-      href: "/meal-planner?quickAdd=1",
-      icon: PlusCircleIcon,
-      isActive: (currentPathname, isQuickAddMode) =>
-        currentPathname === "/meal-planner" && isQuickAddMode,
+      id: "music",
+      href: "/music",
+      icon: MusicIcon,
+      isActive: (currentPathname) =>
+        currentPathname === "/music" || currentPathname.startsWith("/music/"),
     },
     {
       id: "room-bill",
