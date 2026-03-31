@@ -18,6 +18,8 @@ import type {
   RatesFormData,
   DayMeals,
   WeekMeals,
+  IngredientList,
+  IngredientCache,
 } from "./types";
 
 // Helper to convert File to Base64
@@ -270,4 +272,20 @@ export async function upsertDayMeals(
   meals: DayMeals
 ): Promise<void> {
   await set(ref(db, `${COLLECTIONS.MEAL_PLANNER}/${weekKey}/${dayKey}`), meals);
+}
+
+export async function getIngredientsCache(weekKey: string): Promise<IngredientCache | null> {
+  const snapshot = await get(child(ref(db), `${COLLECTIONS.MEAL_PLANNER_INGREDIENTS}/${weekKey}`));
+  if (snapshot.exists()) {
+    return snapshot.val() as IngredientCache;
+  }
+  return null;
+}
+
+export async function saveIngredientsCache(
+  weekKey: string,
+  data: IngredientList,
+  mealsHash: string
+): Promise<void> {
+  await set(ref(db, `${COLLECTIONS.MEAL_PLANNER_INGREDIENTS}/${weekKey}`), { data, mealsHash });
 }

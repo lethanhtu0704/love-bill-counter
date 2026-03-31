@@ -77,3 +77,15 @@ export interface DayMeals {
 }
 
 export type WeekMeals = Record<string, DayMeals>;
+
+export interface IngredientList {
+  meats_seafood?: string[];
+  vegetables?: string[];
+  carbs?: string[];
+  others?: string[];
+}
+
+export interface IngredientCache {
+  data: IngredientList;
+  mealsHash: string;
+}

@@ -45,7 +45,6 @@ export default function LoveCounterPage() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>("full");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -56,8 +55,6 @@ export default function LoveCounterPage() {
     } catch (err) {
       console.error("Error loading love config:", err);
       setStartDate(new Date("2024-09-01"));
-    } finally {
-      setLoading(false);
     }
 
     // 2. Load milestones in the background (they carry heavy base64 images)
@@ -257,21 +254,6 @@ export default function LoveCounterPage() {
     );
   }
 
-  // ── Config loading screen (resolves fast) ─────────────────────────────
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-repeat-x bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          className="text-5xl"
-        >
-          ❤
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="love-page font-[family-name:var(--font-playfair)] text-love-brown bg-[url('/assets/desktop-background.png')] bg-repeat-x bg-cover bg-center bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
       {/* Dark overlay */}
@@ -332,11 +314,11 @@ export default function LoveCounterPage() {
                 />
               </div>
               <motion.div
-                animate={{ opacity: [0.4, 1, 0.4] }}
+                animate={{ opacity: [0.9, 1, 0.9] }}
                 transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
                 className="text-love-brown/60 text-sm italic font-medium"
               >
-                Mèo đang kéo vali kỷ niệm tới...
+                Em bồ chờ xíu nha...
               </motion.div>
             </div>
           ) : (

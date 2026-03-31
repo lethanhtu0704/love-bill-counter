@@ -94,7 +94,7 @@ src/
 - **Purpose:** Plan meals by week, choose a specific day, and maintain breakfast/lunch/dinner entries.
 - **Flow:** User picks a week/date → loads week data from Firebase RTDB → edits meals → saves to Firebase.
 - **AI Generation:** Gemini AI generates a full week's plan via `POST /api/meal-planner/generate`. Saves 7 days **in parallel** via `Promise.all`.
-- **Ingredients:** Gemini AI extracts shopping list from current week's meals via `POST /api/meal-planner/ingredients`. Results are cached client-side by meals hash.
+- **Ingredients:** Gemini AI extracts shopping list from current week's meals via `POST /api/meal-planner/ingredients`. Results use a **3-tier cache** (in-memory → Firebase RTDB → Gemini API) keyed by a hash of the week's meals. Cached at `meal_planner_ingredients/{weekStartKey}`.
 - **Storage Path:** `meal_planner/{weekStartKey}/{dayKey}` where keys use `yyyy-MM-dd`.
 
 ### C. The Room Bill Calculator (`src/app/room-bill/`)

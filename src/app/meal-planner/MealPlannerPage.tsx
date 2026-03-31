@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { addDays, format, startOfWeek } from "date-fns";
-import { getMealsForWeek, upsertDayMeals } from "@/lib/services";
-import type { DayMeals, WeekMeals } from "@/lib/types";
+import { getMealsForWeek, upsertDayMeals, getIngredientsCache, saveIngredientsCache } from "@/lib/services";
+import type { DayMeals, WeekMeals, IngredientList } from "@/lib/types";
+import { hashString } from "@/lib/utils";
 
 const DotLottiePlayer = dynamic(
   () => import("@lottiefiles/dotlottie-react").then((mod) => mod.DotLottieReact),
@@ -18,13 +19,6 @@ type DraftMeals = {
 };
 
 type GeneratedWeek = Record<string, DayMeals>;
-
-type IngredientList = {
-  meats_seafood?: string[];
-  vegetables?: string[];
-  carbs?: string[];
-  others?: string[];
-};
 
 const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 
@@ -239,11 +233,22 @@ export default function MealPlannerPage() {
   const handleViewIngredients = useCallback(async () => {
     setShowIngredientsModal(true);
 
-    const currentMealsHash = JSON.stringify(weekMeals);
+    const currentMealsHash = hashString(JSON.stringify(weekMeals));
+
+    // Tier 1: In-memory cache
     if (ingredientsList && currentMealsHash === lastFetchedMealsHash) return;
 
     setIngredientsLoading(true);
     try {
+      // Tier 2: Firebase cache
+      const cached = await getIngredientsCache(selectedWeekKey);
+      if (cached && cached.mealsHash === currentMealsHash) {
+        setIngredientsList(cached.data);
+        setLastFetchedMealsHash(currentMealsHash);
+        return;
+      }
+
+      // Tier 3: Gemini API
       const res = await fetch("/api/meal-planner/ingredients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -253,6 +258,8 @@ export default function MealPlannerPage() {
       if (result.ok) {
         setIngredientsList(result.data);
         setLastFetchedMealsHash(currentMealsHash);
+        // Persist to Firebase for future page loads
+        saveIngredientsCache(selectedWeekKey, result.data, currentMealsHash).catch(console.error);
       } else {
         console.error("Lỗi lấy nguyên liệu", result.error);
         setIngredientsList(null);
@@ -263,7 +270,7 @@ export default function MealPlannerPage() {
     } finally {
       setIngredientsLoading(false);
     }
-  }, [weekMeals, ingredientsList, lastFetchedMealsHash]);
+  }, [weekMeals, ingredientsList, lastFetchedMealsHash, selectedWeekKey]);
 
   const handleDateChange = useCallback(
     (value: string) => {
