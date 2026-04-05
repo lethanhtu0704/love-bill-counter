@@ -23,16 +23,6 @@ import type {
   Song,
 } from "./types";
 
-// Helper to convert File to Base64
-export function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-  });
-}
-
 // ===== Love Counter Services =====
 
 export async function getLoveConfig(): Promise<LoveConfig> {
@@ -106,8 +96,28 @@ export async function uploadMilestoneImage(
   file: File,
   milestoneId: string
 ): Promise<string> {
-  // Convert explicitly to Base64 string for storage in RTDB per user request
-  return await fileToBase64(file);
+  const authRes = await fetch("/api/imagekit/auth");
+  if (!authRes.ok) throw new Error("Failed to get ImageKit auth credentials");
+  const { token, expire, signature } = await authRes.json() as {
+    token: string;
+    expire: number;
+    signature: string;
+  };
+
+  const { upload } = await import("@imagekit/next");
+  const result = await upload({
+    file,
+    fileName: `milestone-${milestoneId}-${Date.now()}`,
+    folder: "/milestones",
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!,
+    token,
+    expire,
+    signature,
+    useUniqueFileName: false,
+  });
+
+  if (!result.url) throw new Error("ImageKit upload succeeded but returned no URL");
+  return result.url;
 }
 
 // ===== Rates Services =====

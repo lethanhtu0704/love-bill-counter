@@ -9,7 +9,7 @@ export interface Milestone {
   title: string;
   content: string;
   date: number; // timestamp
-  imageUrl: string; // Base64 or URL
+  imageUrl: string; // ImageKit CDN URL (legacy: may be empty string)
   charmImage: string;
   order: number;
   createdAt: number; // timestamp
