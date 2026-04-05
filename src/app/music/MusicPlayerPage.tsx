@@ -28,8 +28,12 @@ export default function MusicPlayerPage() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLInputElement>(null);
+  const currentIndexRef = useRef(-1);
+  const isScrubbingRef = useRef(false);
 
   const currentSong: Song | null = currentIndex >= 0 ? songs[currentIndex] ?? null : null;
+  // Keep ref in sync so lock-screen callbacks always see the latest index
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
   const filteredSongs = useMemo(() => {
     if (!searchQuery.trim()) return songs;
@@ -49,19 +53,40 @@ export default function MusicPlayerPage() {
     return () => { mounted = false; };
   }, []);
 
+  // Direct audio play — must be defined before handleNext/handlePrev so iOS click-chain is unbroken
+  const playSongAtIndex = useCallback((index: number) => {
+    if (songs.length === 0 || index < 0 || index >= songs.length) return;
+    const song = songs[index];
+    const audio = audioRef.current;
+    if (!audio) return;
+    currentIndexRef.current = index;
+    setCurrentIndex(index);
+    audio.src = song.audioUrl;
+    audio.load();
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => setIsPlaying(true))
+        .catch((err) => { console.error("Playback failed:", err); setIsPlaying(false); });
+    }
+  }, [songs]);
+
   const handleNext = useCallback(() => {
     if (songs.length === 0) return;
-    setCurrentIndex((prev) => {
-      if (shuffle) {
-        let next = Math.floor(Math.random() * songs.length);
-        if (songs.length > 1) while (next === prev) next = Math.floor(Math.random() * songs.length);
-        return next;
+    const prev = currentIndexRef.current;
+    let next: number;
+    if (shuffle) {
+      next = Math.floor(Math.random() * songs.length);
+      if (songs.length > 1) while (next === prev) next = Math.floor(Math.random() * songs.length);
+    } else {
+      next = prev + 1;
+      if (next >= songs.length) {
+        if (repeat === "off") return;
+        next = 0;
       }
-      const next = prev + 1;
-      if (next >= songs.length) return repeat === "off" ? prev : 0;
-      return next;
-    });
-  }, [songs.length, shuffle, repeat]);
+    }
+    playSongAtIndex(next);
+  }, [songs.length, shuffle, repeat, playSongAtIndex]);
 
   const handlePrev = useCallback(() => {
     const audio = audioRef.current;
@@ -69,60 +94,67 @@ export default function MusicPlayerPage() {
       audio.currentTime = 0;
       return;
     }
-    setCurrentIndex((prev) => {
-      if (prev <= 0) return songs.length - 1;
-      return prev - 1;
-    });
-  }, [songs.length]);
+    const prev = currentIndexRef.current;
+    playSongAtIndex(prev <= 0 ? songs.length - 1 : prev - 1);
+  }, [songs.length, playSongAtIndex]);
 
-  // Sync audio element when current song changes
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentSong) return;
-
-    audio.src = currentSong.audioUrl;
-    audio.load();
-    audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-  }, [currentSong]);
-
-  // MediaSession API for iOS lock screen controls
+  // MediaSession: metadata — update on song change
   useEffect(() => {
     if (!currentSong || !("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist,
+        artwork: currentSong.imageUrl
+          ? [{ src: currentSong.imageUrl, sizes: "512x512", type: "image/png" }]
+          : [],
+      });
+    } catch (e) { /* unsupported */ }
+  }, [currentSong]);
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.title,
-      artist: currentSong.artist,
-      artwork: currentSong.imageUrl
-        ? [{ src: currentSong.imageUrl, sizes: "512x512", type: "image/png" }]
-        : [],
-    });
+  // MediaSession: playbackState — crucial for iOS lock screen stability
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    } catch (e) { /* unsupported */ }
+  }, [isPlaying]);
 
-    navigator.mediaSession.setActionHandler("play", () => audioRef.current?.play());
-    navigator.mediaSession.setActionHandler("pause", () => audioRef.current?.pause());
-    navigator.mediaSession.setActionHandler("previoustrack", handlePrev);
-    navigator.mediaSession.setActionHandler("nexttrack", handleNext);
-  }, [currentSong, handlePrev, handleNext]);
+  // MediaSession: action handlers — re-bind whenever prev/next callbacks change
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const actions: Array<[MediaSessionAction, MediaSessionActionHandler]> = [
+      ["play", () => { audioRef.current?.play(); }],
+      ["pause", () => { audioRef.current?.pause(); }],
+      ["previoustrack", handlePrev],
+      ["nexttrack", handleNext],
+      ["seekto", (details) => {
+        if (details.seekTime !== undefined && audioRef.current) {
+          audioRef.current.currentTime = details.seekTime;
+        }
+      }],
+    ];
+    for (const [action, handler] of actions) {
+      try { navigator.mediaSession.setActionHandler(action, handler); }
+      catch (e) { /* action not supported on this platform */ }
+    }
+  }, [handlePrev, handleNext]);
 
   const handlePlaySong = useCallback(
     (index: number) => {
-      // Map filtered index back to main songs array
       const song = filteredSongs[index];
       const realIndex = songs.indexOf(song);
       if (realIndex === currentIndex) {
-        // Toggle play/pause
         const audio = audioRef.current;
         if (!audio) return;
-        if (audio.paused) {
-          audio.play().catch(() => {});
-        } else {
-          audio.pause();
-        }
+        if (audio.paused) { audio.play().catch(() => {}); }
+        else { audio.pause(); }
         return;
       }
-      setCurrentIndex(realIndex);
+      playSongAtIndex(realIndex);
       setView("now-playing");
     },
-    [filteredSongs, songs, currentIndex]
+    [filteredSongs, songs, currentIndex, playSongAtIndex]
   );
 
   const togglePlay = useCallback(() => {
@@ -136,9 +168,10 @@ export default function MusicPlayerPage() {
   }, []);
 
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    setCurrentTime(val);
     const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = Number(e.target.value);
+    if (audio) audio.currentTime = val;
   }, []);
 
   const handleEnded = useCallback(() => {
@@ -157,9 +190,9 @@ export default function MusicPlayerPage() {
     if (songs.length === 0) return;
     setShuffle(true);
     const randomIndex = Math.floor(Math.random() * songs.length);
-    setCurrentIndex(randomIndex);
+    playSongAtIndex(randomIndex);
     setView("now-playing");
-  }, [songs.length]);
+  }, [songs.length, playSongAtIndex]);
 
   const cycleRepeat = useCallback(() => {
     setRepeat((prev) => {
@@ -355,7 +388,9 @@ export default function MusicPlayerPage() {
             step={0.1}
             value={currentTime}
             onChange={handleSeek}
-            className="music-range w-full h-1.5 appearance-none rounded-full outline-none cursor-pointer"
+            onPointerDown={() => { isScrubbingRef.current = true; }}
+            onPointerUp={() => { isScrubbingRef.current = false; }}
+            className="music-range w-full h-2 appearance-none rounded-full outline-none cursor-pointer touch-none"
             style={{
               background: `linear-gradient(to right, #a23d69 ${progress}%, rgba(150,111,96,0.2) ${progress}%)`,
             }}
@@ -415,7 +450,7 @@ export default function MusicPlayerPage() {
   function renderMiniPlayer() {
     if (!currentSong || view === "now-playing") return null;
     return (
-      <div className="fixed bottom-[104px] left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md">
+      <div className="fixed bottom-[170px] left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md">
         <div
           role="button"
           tabIndex={0}
@@ -467,7 +502,7 @@ export default function MusicPlayerPage() {
   // ──────── Bottom Tabs ────────
   function renderTabs() {
     return (
-      <div className="fixed bottom-[72px] left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md flex rounded-2xl overflow-hidden bg-white/60 backdrop-blur-md shadow-lg border border-love-brown/10">
+      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-40 w-[89%] max-w-md flex rounded-2xl overflow-hidden bg-white/60 backdrop-blur-md shadow-lg border border-love-brown/10">
         <button
           type="button"
           onClick={() => setView("library")}
@@ -498,7 +533,7 @@ export default function MusicPlayerPage() {
       <audio
         ref={audioRef}
         playsInline
-        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime ?? 0)}
+        onTimeUpdate={() => { if (!isScrubbingRef.current) setCurrentTime(audioRef.current?.currentTime ?? 0); }}
         onLoadedMetadata={() => setAudioDuration(audioRef.current?.duration ?? 0)}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}

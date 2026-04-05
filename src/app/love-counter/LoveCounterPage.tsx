@@ -25,10 +25,10 @@ import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
 import { validatePin } from "./actions";
 
-const DotLottiePlayer = dynamic(
-  () => import("@lottiefiles/dotlottie-react").then((mod) => mod.DotLottieReact),
-  { ssr: false }
-);
+// const DotLottiePlayer = dynamic(
+//   () => import("@lottiefiles/dotlottie-react").then((mod) => mod.DotLottieReact),
+//   { ssr: false }
+// );
 
 export default function LoveCounterPage() {
   // ── Auth ──────────────────────────────────────────────────────────────
@@ -306,13 +306,13 @@ export default function LoveCounterPage() {
 
           {milestonesLoading ? (
             <div className="flex flex-col items-center gap-4 py-10 w-full max-w-[560px] mx-auto">
-              <div className="h-40 w-40">
+              {/* <div className="h-40 w-40">
                 <DotLottiePlayer
                   src="/animations/cat-loading.json"
                   loop
                   autoplay
                 />
-              </div>
+              </div> */}
               <motion.div
                 animate={{ opacity: [0.9, 1, 0.9] }}
                 transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
