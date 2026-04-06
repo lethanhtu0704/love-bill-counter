@@ -30,6 +30,9 @@ export default function MusicPlayerPage() {
   const progressRef = useRef<HTMLInputElement>(null);
   const currentIndexRef = useRef(-1);
   const isScrubbingRef = useRef(false);
+  const hasEndedRef = useRef(false);
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const handleEndedRef = useRef<() => void>(() => {});
 
   const currentSong: Song | null = currentIndex >= 0 ? songs[currentIndex] ?? null : null;
   // Keep ref in sync so lock-screen callbacks always see the latest index
@@ -59,6 +62,7 @@ export default function MusicPlayerPage() {
     const song = songs[index];
     const audio = audioRef.current;
     if (!audio) return;
+    hasEndedRef.current = false;
     currentIndexRef.current = index;
     setCurrentIndex(index);
     audio.src = song.audioUrl;
@@ -175,9 +179,12 @@ export default function MusicPlayerPage() {
   }, []);
 
   const handleEnded = useCallback(() => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
     if (repeat === "one") {
       const audio = audioRef.current;
       if (audio) {
+        hasEndedRef.current = false;
         audio.currentTime = 0;
         audio.play().catch(() => {});
       }
@@ -185,6 +192,9 @@ export default function MusicPlayerPage() {
     }
     handleNext();
   }, [repeat, handleNext]);
+
+  // Keep a stable ref so the timeupdate fallback always calls the latest version
+  useEffect(() => { handleEndedRef.current = handleEnded; }, [handleEnded]);
 
   const handleShuffleAll = useCallback(() => {
     if (songs.length === 0) return;
@@ -533,7 +543,21 @@ export default function MusicPlayerPage() {
       <audio
         ref={audioRef}
         playsInline
-        onTimeUpdate={() => { if (!isScrubbingRef.current) setCurrentTime(audioRef.current?.currentTime ?? 0); }}
+        onTimeUpdate={() => {
+          const audio = audioRef.current;
+          if (!audio) return;
+          if (!isScrubbingRef.current) setCurrentTime(audio.currentTime);
+          // Fallback: fire ended logic when within 0.3 s of end (onEnded unreliable on iOS/Safari)
+          if (
+            !hasEndedRef.current &&
+            audio.duration > 0 &&
+            isFinite(audio.duration) &&
+            audio.currentTime > 0 &&
+            audio.currentTime >= audio.duration - 0.3
+          ) {
+            handleEndedRef.current();
+          }
+        }}
         onLoadedMetadata={() => setAudioDuration(audioRef.current?.duration ?? 0)}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
