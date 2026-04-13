@@ -10,7 +10,7 @@ A unified Next.js web application that bundles three primary features:
 - **Framework:** Next.js (16.x) with the **App Router** (`src/app`).
 - **PWA Integration:** Serwist (`@serwist/turbopack`) for Service Worker (`src/app/sw.ts`), offline support (`src/app/~offline/page.tsx`), and caching.
 - **Backend & Database:** Firebase (Client SDK: `firebase`, Server SDK: `firebase-admin`).
-- **Styling:** Tailwind CSS (v4) and general CSS for specific components (`MilestoneCard.css`).
+- **Styling:** Tailwind CSS (v4) and general CSS for specific components (`MilestoneCard.css`). For textarea or input, using font-size 16 or above to make sure ios not auto zoom when focus.
 - **Animations:** Framer Motion (`framer-motion`) — used only in feature pages (love counter, room bill modals), **not** in the root layout shell to minimize initial bundle size.
 - **Date Utilities:** `date-fns` for robust date math and formatting.
 - **AI Integration:** Google GenAI SDK (`@google/genai`) for Gemini-powered meal plan generation via server-side Route Handler.

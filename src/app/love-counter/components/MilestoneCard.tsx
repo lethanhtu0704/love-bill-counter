@@ -3,7 +3,6 @@
 import { useState, useRef, useMemo, memo } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { vi } from "date-fns/locale";
 import "./css/MilestoneCard.css";
 import type { Milestone } from "@/lib/types";
 

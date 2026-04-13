@@ -25,6 +25,7 @@ export default function MusicPlayerPage() {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<"off" | "all" | "one">("off");
   const [searchQuery, setSearchQuery] = useState("");
+  const [disabledSongs, setDisabledSongs] = useState<Set<string>>(new Set());
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLInputElement>(null);
@@ -33,10 +34,12 @@ export default function MusicPlayerPage() {
   const hasEndedRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   const handleEndedRef = useRef<() => void>(() => {});
+  const disabledSongsRef = useRef<Set<string>>(new Set());
 
   const currentSong: Song | null = currentIndex >= 0 ? songs[currentIndex] ?? null : null;
   // Keep ref in sync so lock-screen callbacks always see the latest index
   useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+  useEffect(() => { disabledSongsRef.current = disabledSongs; }, [disabledSongs]);
 
   const filteredSongs = useMemo(() => {
     if (!searchQuery.trim()) return songs;
@@ -78,19 +81,28 @@ export default function MusicPlayerPage() {
   const handleNext = useCallback(() => {
     if (songs.length === 0) return;
     const prev = currentIndexRef.current;
+    const disabled = disabledSongsRef.current;
     let next: number;
     if (shuffle) {
-      next = Math.floor(Math.random() * songs.length);
-      if (songs.length > 1) while (next === prev) next = Math.floor(Math.random() * songs.length);
+      const available = songs.map((_, i) => i).filter(i => i !== prev && !disabled.has(songs[i].id));
+      if (available.length === 0) return;
+      next = available[Math.floor(Math.random() * available.length)];
     } else {
       next = prev + 1;
-      if (next >= songs.length) {
-        if (repeat === "off") return;
-        next = 0;
+      let count = 0;
+      while (count < songs.length) {
+        if (next >= songs.length) {
+          if (repeat === "off") return;
+          next = 0;
+        }
+        if (!disabled.has(songs[next].id)) break;
+        next++;
+        count++;
       }
+      if (count >= songs.length) return;
     }
     playSongAtIndex(next);
-  }, [songs.length, shuffle, repeat, playSongAtIndex]);
+  }, [songs, shuffle, repeat, playSongAtIndex]);
 
   const handlePrev = useCallback(() => {
     const audio = audioRef.current;
@@ -99,8 +111,18 @@ export default function MusicPlayerPage() {
       return;
     }
     const prev = currentIndexRef.current;
-    playSongAtIndex(prev <= 0 ? songs.length - 1 : prev - 1);
-  }, [songs.length, playSongAtIndex]);
+    const disabled = disabledSongsRef.current;
+    let target = prev - 1;
+    let count = 0;
+    while (count < songs.length) {
+      if (target < 0) target = songs.length - 1;
+      if (!disabled.has(songs[target].id)) break;
+      target--;
+      count++;
+    }
+    if (count >= songs.length) return;
+    playSongAtIndex(target);
+  }, [songs, playSongAtIndex]);
 
   // MediaSession: metadata — update on song change
   useEffect(() => {
@@ -144,9 +166,19 @@ export default function MusicPlayerPage() {
     }
   }, [handlePrev, handleNext]);
 
+  const toggleDisabledSong = useCallback((id: string) => {
+    setDisabledSongs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const handlePlaySong = useCallback(
     (index: number) => {
       const song = filteredSongs[index];
+      if (disabledSongs.has(song.id)) return;
       const realIndex = songs.indexOf(song);
       if (realIndex === currentIndex) {
         const audio = audioRef.current;
@@ -158,7 +190,7 @@ export default function MusicPlayerPage() {
       playSongAtIndex(realIndex);
       setView("now-playing");
     },
-    [filteredSongs, songs, currentIndex, playSongAtIndex]
+    [filteredSongs, songs, currentIndex, playSongAtIndex, disabledSongs]
   );
 
   const togglePlay = useCallback(() => {
@@ -247,7 +279,7 @@ export default function MusicPlayerPage() {
               placeholder="Search songs, artists..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent text-sm text-love-brown outline-none placeholder:text-love-dot/50"
+              className="w-full bg-transparent text-base text-love-brown outline-none placeholder:text-love-dot/50"
             />
           </div>
         </div>
@@ -268,13 +300,16 @@ export default function MusicPlayerPage() {
               {filteredSongs.map((song, idx) => {
                 const realIndex = songs.indexOf(song);
                 const isActive = realIndex === currentIndex;
+                const isDisabled = disabledSongs.has(song.id);
                 return (
-                  <li key={song.id}>
+                  <li key={song.id} className="flex items-center">
                     <button
                       type="button"
                       onClick={() => handlePlaySong(idx)}
-                      className={`w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
-                        isActive
+                      className={`flex-1 flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
+                        isDisabled
+                          ? "opacity-40 cursor-not-allowed"
+                          : isActive
                           ? "bg-love-pink/20 shadow-sm"
                           : "hover:bg-love-dot/5"
                       }`}
@@ -285,14 +320,14 @@ export default function MusicPlayerPage() {
                           <img
                             src={song.imageUrl}
                             alt={song.title}
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isDisabled ? "grayscale" : ""}`}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <NoteIcon className="w-6 h-6 text-love-dot/40" />
                           </div>
                         )}
-                        {isActive && isPlaying ? (
+                        {isActive && isPlaying && !isDisabled ? (
                           <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                             <EqualizerIcon className="w-5 h-5 text-white" />
                           </div>
@@ -301,16 +336,22 @@ export default function MusicPlayerPage() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold truncate ${isActive ? "text-love-pink" : "text-love-brown"}`}>
+                        <p className={`text-sm font-semibold truncate ${isActive && !isDisabled ? "text-love-pink" : "text-love-brown"}`}>
                           {song.title}
                         </p>
                         <p className="text-xs text-love-dot/70 truncate">{song.artist}</p>
+                        <span className="text-xs text-love-dot/60 tabular-nums">{formatTime(song.duration)}</span>
                       </div>
+                    </button>
 
-                      {/* Duration */}
-                      <span className="text-xs text-love-dot/60 tabular-nums shrink-0">
-                        {formatTime(song.duration)}
-                      </span>
+                    {/* Eye toggle */}
+                    <button
+                      type="button"
+                      onClick={() => toggleDisabledSong(song.id)}
+                      className="p-2 shrink-0 text-love-dot/40 hover:text-love-brown transition"
+                      title={isDisabled ? "Enable song" : "Disable song"}
+                    >
+                      {isDisabled ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                     </button>
                   </li>
                 );
@@ -683,6 +724,25 @@ function LibraryIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
       <path d="M12 6v7l3-2 3 2V6" />
+    </svg>
+  );
+}
+
+function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
   );
 }
