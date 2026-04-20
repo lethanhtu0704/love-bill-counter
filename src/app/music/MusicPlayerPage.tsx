@@ -5,7 +5,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -55,7 +56,8 @@ export default function MusicPlayerPage() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -412,8 +414,8 @@ export default function MusicPlayerPage() {
               onDragEnd={handleDragEnd}
               autoScroll={{
                 threshold: { x: 0, y: 0.15 },
-                interval: 5,
-                acceleration: 8,
+                interval: 16,
+                acceleration: 4,
               }}
             >
               <SortableContext items={songs.map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -713,8 +715,8 @@ const SortableSongItem = React.memo(function SortableSongItem({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition: transition ?? "transform 200ms ease",
+    transform: CSS.Translate.toString(transform),
+    transition: isDragging ? "none" : (transition ?? undefined),
     opacity: isDragging ? 0.45 : 1,
     zIndex: isDragging ? 10 : undefined,
     position: "relative",
