@@ -311,8 +311,19 @@ export async function getSongs(): Promise<Song[]> {
   if (Array.isArray(raw)) {
     return raw
       .map((song, i) => song ? { id: String(i), ...song } as Song : null)
-      .filter((s): s is Song => s !== null);
+      .filter((s): s is Song => s !== null)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
   const data = raw as Record<string, Omit<Song, "id">>;
-  return Object.entries(data).map(([id, song]) => ({ id, ...song }));
+  return Object.entries(data)
+    .map(([id, song]) => ({ id, ...song } as Song))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+export async function updateSongsOrder(songs: Song[]): Promise<void> {
+  const updates: Record<string, unknown> = {};
+  songs.forEach((song, index) => {
+    updates[`${COLLECTIONS.MUSIC}/${song.id}/order`] = index;
+  });
+  await update(ref(db), updates);
 }

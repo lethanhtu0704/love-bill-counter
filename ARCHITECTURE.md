@@ -12,6 +12,7 @@ A unified Next.js web application that bundles three primary features:
 - **Backend & Database:** Firebase (Client SDK: `firebase`, Server SDK: `firebase-admin`).
 - **Styling:** Tailwind CSS (v4) and general CSS for specific components (`MilestoneCard.css`). For textarea or input, using font-size 16 or above to make sure ios not auto zoom when focus.
 - **Animations:** Framer Motion (`framer-motion`) — used only in feature pages (love counter, room bill modals), **not** in the root layout shell to minimize initial bundle size.
+- **Drag & Drop:** `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (~15 kb) — used in the Music Player library for accessible, touch-friendly song reordering.
 - **Date Utilities:** `date-fns` for robust date math and formatting.
 - **AI Integration:** Google GenAI SDK (`@google/genai`) for Gemini-powered meal plan generation via server-side Route Handler.
 - **Utilities:** `react-to-print` (useful for printing or exporting Room Bill receipts).
@@ -102,7 +103,12 @@ src/
 - **Components:** Dashboard with `BillTable` (desktop) / `BillCardList` (mobile). Modals loaded on demand via `next/dynamic`.
 - **Flow:** Dashboard loads bills + rates in parallel → Create/Edit via shared `BillFormFields` component → Receipt display via `Receipt.tsx`.
 
-### D. Push Notifications (`src/app/api/push/`)
+### D. The Music Player (`src/app/music/`)
+- **Purpose:** Browse and play a personal music library stored in Firebase RTDB.
+- **Drag & Drop Reordering:** Songs can be reordered via drag-and-drop (`@dnd-kit`). Reorder is debounced 10 s — `updateSongsOrder` writes each song's `order` field to Firebase only after the user stops dragging. Auto-scroll activates when dragging near the bottom edge of the screen (configured at `acceleration: 8`, `threshold: 0.15`). Drag handles are hidden when a search query is active.
+- **Flow:** Load songs (sorted by `order`) → library view with play/disable/reorder → Now Playing view with progress, prev/next, shuffle, repeat → Mini Player overlay when browsing library.
+
+### E. Push Notifications (`src/app/api/push/`)
 - **Purpose:** Engage users by alerting them about relationship milestones.
 - **Flow:** Client subscribes via `api/push/subscribe` → Token stored hashed in RTDB → `notify-milestone/` dispatches via FCM → Invalid tokens cleaned up from cached snapshot (no redundant reads).
 

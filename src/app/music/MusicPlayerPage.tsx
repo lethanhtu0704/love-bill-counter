@@ -1,7 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getSongs } from "@/lib/services";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { getSongs, updateSongsOrder } from "@/lib/services";
 import type { Song } from "@/lib/types";
 
 type View = "library" | "now-playing";
@@ -35,6 +52,12 @@ export default function MusicPlayerPage() {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   const handleEndedRef = useRef<() => void>(() => {});
   const disabledSongsRef = useRef<Set<string>>(new Set());
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const currentSong: Song | null = currentIndex >= 0 ? songs[currentIndex] ?? null : null;
   // Keep ref in sync so lock-screen callbacks always see the latest index
@@ -166,6 +189,40 @@ export default function MusicPlayerPage() {
     }
   }, [handlePrev, handleNext]);
 
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = songs.findIndex((s) => s.id === active.id);
+    const newIndex = songs.findIndex((s) => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newSongs = arrayMove(songs, oldIndex, newIndex);
+    setSongs(newSongs);
+
+    // Keep current song index in sync after reorder
+    const curIdx = currentIndexRef.current;
+    if (curIdx >= 0) {
+      const currentSongId = songs[curIdx]?.id;
+      const newCurIdx = newSongs.findIndex((s) => s.id === currentSongId);
+      if (newCurIdx !== -1) {
+        setCurrentIndex(newCurIdx);
+        currentIndexRef.current = newCurIdx;
+      }
+    }
+
+    // Debounce: save to Firebase 10 s after the last drag
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      updateSongsOrder(newSongs).catch(console.error);
+    }, 10_000);
+  }, [songs]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+  }, []);
+
   const toggleDisabledSong = useCallback((id: string) => {
     setDisabledSongs(prev => {
       const next = new Set(prev);
@@ -295,7 +352,8 @@ export default function MusicPlayerPage() {
             <div className="py-16 text-center text-love-dot/60">
               <p className="text-sm">{searchQuery ? "No songs match your search." : "No songs yet. Add music in Firebase."}</p>
             </div>
-          ) : (
+          ) : searchQuery.trim() ? (
+            // Filtered view — no drag handles
             <ul className="space-y-1">
               {filteredSongs.map((song, idx) => {
                 const realIndex = songs.indexOf(song);
@@ -314,14 +372,9 @@ export default function MusicPlayerPage() {
                           : "hover:bg-love-dot/5"
                       }`}
                     >
-                      {/* Thumbnail */}
                       <div className="relative w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-love-dot/10 shadow-sm">
                         {song.imageUrl ? (
-                          <img
-                            src={song.imageUrl}
-                            alt={song.title}
-                            className={`w-full h-full object-cover ${isDisabled ? "grayscale" : ""}`}
-                          />
+                          <img src={song.imageUrl} alt={song.title} className={`w-full h-full object-cover ${isDisabled ? "grayscale" : ""}`} />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <NoteIcon className="w-6 h-6 text-love-dot/40" />
@@ -333,18 +386,12 @@ export default function MusicPlayerPage() {
                           </div>
                         ) : null}
                       </div>
-
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold truncate ${isActive && !isDisabled ? "text-love-pink" : "text-love-brown"}`}>
-                          {song.title}
-                        </p>
+                        <p className={`text-sm font-semibold truncate ${isActive && !isDisabled ? "text-love-pink" : "text-love-brown"}`}>{song.title}</p>
                         <p className="text-xs text-love-dot/70 truncate">{song.artist}</p>
                         <span className="text-xs text-love-dot/60 tabular-nums">{formatTime(song.duration)}</span>
                       </div>
                     </button>
-
-                    {/* Eye toggle */}
                     <button
                       type="button"
                       onClick={() => toggleDisabledSong(song.id)}
@@ -357,6 +404,38 @@ export default function MusicPlayerPage() {
                 );
               })}
             </ul>
+          ) : (
+            // Full library — drag & drop enabled
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              autoScroll={{
+                threshold: { x: 0, y: 0.15 },
+                interval: 5,
+                acceleration: 8,
+              }}
+            >
+              <SortableContext items={songs.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-1">
+                  {songs.map((song, idx) => {
+                    const isActive = idx === currentIndex;
+                    const isDisabled = disabledSongs.has(song.id);
+                    return (
+                      <SortableSongItem
+                        key={song.id}
+                        song={song}
+                        isActive={isActive}
+                        isPlaying={isPlaying}
+                        isDisabled={isDisabled}
+                        onPlay={() => handlePlaySong(idx)}
+                        onToggleDisabled={() => toggleDisabledSong(song.id)}
+                      />
+                    );
+                  })}
+                </ul>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>
@@ -612,7 +691,109 @@ export default function MusicPlayerPage() {
   );
 }
 
+// ──────── Sortable Song Item ────────
+
+interface SortableSongItemProps {
+  song: Song;
+  isActive: boolean;
+  isPlaying: boolean;
+  isDisabled: boolean;
+  onPlay: () => void;
+  onToggleDisabled: () => void;
+}
+
+const SortableSongItem = React.memo(function SortableSongItem({
+  song,
+  isActive,
+  isPlaying,
+  isDisabled,
+  onPlay,
+  onToggleDisabled,
+}: SortableSongItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition ?? "transform 200ms ease",
+    opacity: isDragging ? 0.45 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: "relative",
+  };
+
+  return (
+    <li ref={setNodeRef} style={style} {...attributes} className="flex items-center">
+      {/* Drag handle */}
+      <button
+        {...listeners}
+        type="button"
+        aria-label="Drag to reorder"
+        className="p-2 shrink-0 touch-none text-love-dot/30 hover:text-love-dot/60 cursor-grab active:cursor-grabbing transition"
+      >
+        <GripVerticalIcon className="w-4 h-4" />
+      </button>
+
+      {/* Song button */}
+      <button
+        type="button"
+        onClick={onPlay}
+        className={`flex-1 flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
+          isDisabled
+            ? "opacity-40 cursor-not-allowed"
+            : isActive
+            ? "bg-love-pink/20 shadow-sm"
+            : "hover:bg-love-dot/5"
+        }`}
+      >
+        <div className="relative w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-love-dot/10 shadow-sm">
+          {song.imageUrl ? (
+            <img src={song.imageUrl} alt={song.title} className={`w-full h-full object-cover ${isDisabled ? "grayscale" : ""}`} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <NoteIcon className="w-6 h-6 text-love-dot/40" />
+            </div>
+          )}
+          {isActive && isPlaying && !isDisabled ? (
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+              <EqualizerIcon className="w-5 h-5 text-white" />
+            </div>
+          ) : null}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold truncate ${isActive && !isDisabled ? "text-love-pink" : "text-love-brown"}`}>
+            {song.title}
+          </p>
+          <p className="text-xs text-love-dot/70 truncate">{song.artist}</p>
+          <span className="text-xs text-love-dot/60 tabular-nums">{formatTime(song.duration)}</span>
+        </div>
+      </button>
+
+      {/* Eye toggle */}
+      <button
+        type="button"
+        onClick={onToggleDisabled}
+        className="p-2 shrink-0 text-love-dot/40 hover:text-love-brown transition"
+        title={isDisabled ? "Enable song" : "Disable song"}
+      >
+        {isDisabled ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+      </button>
+    </li>
+  );
+});
+
 // ──────── Inline SVG Icons ────────
+
+function GripVerticalIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <circle cx="9" cy="6" r="1.5" />
+      <circle cx="15" cy="6" r="1.5" />
+      <circle cx="9" cy="12" r="1.5" />
+      <circle cx="15" cy="12" r="1.5" />
+      <circle cx="9" cy="18" r="1.5" />
+      <circle cx="15" cy="18" r="1.5" />
+    </svg>
+  );
+}
 
 function ShuffleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (

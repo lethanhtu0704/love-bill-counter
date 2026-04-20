@@ -99,4 +99,5 @@ export interface Song {
   imageUrl: string;
   audioUrl: string;
   duration: number; // seconds
+  order?: number;
 }
