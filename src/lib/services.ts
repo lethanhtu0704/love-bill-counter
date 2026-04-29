@@ -21,6 +21,7 @@ import type {
   IngredientList,
   IngredientCache,
   Song,
+  GoldSnapshot,
 } from "./types";
 
 // ===== Love Counter Services =====
@@ -326,4 +327,20 @@ export async function updateSongsOrder(songs: Song[]): Promise<void> {
     updates[`${COLLECTIONS.MUSIC}/${song.id}/order`] = index;
   });
   await update(ref(db), updates);
+}
+
+// ===== Gold Tracker Services =====
+
+export async function getGoldHistory(): Promise<GoldSnapshot[]> {
+  const snapshot = await get(child(ref(db), COLLECTIONS.GOLD_HISTORY));
+  if (!snapshot.exists()) return [];
+  const data = snapshot.val() as Record<string, Omit<GoldSnapshot, "id">>;
+  return Object.entries(data)
+    .map(([id, snap]) => ({ id, ...snap } as GoldSnapshot))
+    .sort((a, b) => a.savedAt - b.savedAt);
+}
+
+export async function getLatestGold(): Promise<GoldSnapshot | null> {
+  const history = await getGoldHistory();
+  return history.length > 0 ? history[history.length - 1] : null;
 }

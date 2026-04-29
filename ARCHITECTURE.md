@@ -1,10 +1,11 @@
 # Application Architecture & Overview
 
 ## 1. Project Overview
-A unified Next.js web application that bundles three primary features:
+A unified Next.js web application that bundles four primary features:
 1. **Love Counter:** A time-tracking feature that calculates the duration of a relationship and displays key relationship milestones.
 2. **Room Bill Calculator:** A comprehensive utility for calculating, managing, and generating receipts for monthly room bills.
 3. **Meal Planner:** A weekly meal planning feature (breakfast/lunch/dinner) with per-day editing and Firebase persistence.
+4. **Gold Tracker:** A mobile-first PNJ gold price tracker (`Nhẫn Trơn PNJ 999.9`) with snapshot history, period comparison, and price chart.
 
 ## 2. Tech Stack & Libraries
 - **Framework:** Next.js (16.x) with the **App Router** (`src/app`).
@@ -24,7 +25,8 @@ src/
 ├── app/                  # Next.js App Router root
 │   ├── api/              # API Routes (Backend logic)
 │   │   ├── push/         # Push notification endpoints
-│   │   └── meal-planner/ # Meal planner AI generation endpoint (Gemini)
+│   │   ├── meal-planner/ # Meal planner AI generation endpoint (Gemini)
+│   │   └── gold/         # Gold tracker — fetches PNJ API and persists snapshots
 │   ├── love-counter/     # Feature 1: Love Counter pages & components
 │   ├── meal-planner/     # Feature 2: Weekly meal planning pages & components
 │   │   ├── page.tsx      # Thin wrapper with next/dynamic import
@@ -111,6 +113,15 @@ src/
 ### E. Push Notifications (`src/app/api/push/`)
 - **Purpose:** Engage users by alerting them about relationship milestones.
 - **Flow:** Client subscribes via `api/push/subscribe` → Token stored hashed in RTDB → `notify-milestone/` dispatches via FCM → Invalid tokens cleaned up from cached snapshot (no redundant reads).
+
+### F. Gold Tracker (`src/app/gold/`)
+- **Purpose:** Track the daily price of `Nhẫn Trơn PNJ 999.9` (PNJ `masp: N24K`) and surface deviation from the period low.
+- **Data Source:** PNJ public endpoint `https://edge-cf-api.pnj.io/ecom-frontend/v1/get-gold-price?zone=00`. Only the N24K row is persisted — other gold types are ignored.
+- **Storage:** RTDB path `gold_history/{pushId}` with `{ productCode, productName, buy, sell, sourceUpdatedAt, savedAt }`. Unit is fixed at `1.000đ/Chỉ`.
+- **Refresh Rules:** `GET/POST /api/gold/refresh` fetches PNJ server-side via Firebase Admin and only writes a new snapshot when (a) `buy`/`sell` changed, or (b) the latest snapshot is from a different UTC calendar day (so daily history stays continuous).
+- **Auth:** When `CRON_SECRET` is set, the endpoint accepts either `Authorization: Bearer <CRON_SECRET>` (Vercel Cron) or same-origin browser requests (the manual "Cập nhật giá" button).
+- **Cron:** `vercel.json` schedules `/api/gold/refresh` daily at `30 1 * * *` UTC (≈08:30 Asia/Ho_Chi_Minh) to guarantee a baseline snapshot per day.
+- **UI Flow:** Header (date + last `updateDate` time) → full-width refresh button (`#a23d69`) → current price card with PNJ icon → comparison summary card with period selector (`Tháng này / 7D / 30D / 90D`) computing `((currentSell - lowestSell) / lowestSell) * 100` → SVG line chart (Buy dashed, Sell solid) with `7D / 30D / 90D` selector.
 
 ## 6. Firebase & Data Flow
 - `lib/firebase.ts`: Initializes the client-side Firebase app.

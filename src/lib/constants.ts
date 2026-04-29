@@ -7,7 +7,15 @@ export const COLLECTIONS = {
   MEAL_PLANNER: "meal_planner",
   MEAL_PLANNER_INGREDIENTS: "meal_planner_ingredients",
   MUSIC: "music",
+  GOLD_HISTORY: "gold_history",
 } as const;
+
+// Gold tracking constants
+export const GOLD_PRODUCT_CODE = "N24K";
+export const GOLD_PRODUCT_NAME = "Nhẫn Trơn PNJ 999.9";
+export const GOLD_UNIT_LABEL = "1.000đ/Chỉ";
+export const PNJ_GOLD_API_URL =
+  "https://edge-cf-api.pnj.io/ecom-frontend/v1/get-gold-price?zone=00";
 
 // Firestore document IDs
 export const DOCS = {

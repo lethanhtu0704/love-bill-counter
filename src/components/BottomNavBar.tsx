@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ReactElement, SVGProps } from "react";
-import { HomeIcon, HeartIcon, MusicIcon, UtensilsIcon, BellIcon } from "./icons";
+import { HomeIcon, HeartIcon, MusicIcon, UtensilsIcon, CoinIcon } from "./icons";
 
 type NavItem = {
   id: string;
@@ -50,12 +50,11 @@ export default function BottomNavBar() {
         currentPathname === "/meal-planner" && !isQuickAddMode,
     },
     {
-      id: "notifications",
-      href: "/notifications",
-      icon: BellIcon,
+      id: "gold",
+      href: "/gold",
+      icon: CoinIcon,
       isActive: (currentPathname) =>
-        currentPathname === "/notifications" ||
-        currentPathname.startsWith("/notifications/"),
+        currentPathname === "/gold" || currentPathname.startsWith("/gold/"),
     },
   ];
 

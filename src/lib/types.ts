@@ -101,3 +101,18 @@ export interface Song {
   duration: number; // seconds
   order?: number;
 }
+
+// ===== Gold Tracker Types =====
+
+export interface GoldSnapshot {
+  id: string;
+  productCode: string;
+  productName: string;
+  buy: number;
+  sell: number;
+  sourceUpdatedAt: number; // epoch (parsed from PNJ updateDate)
+  savedAt: number; // epoch when stored
+}
+
+export type GoldComparisonRange = "month" | "7d" | "30d" | "90d";
+export type GoldChartRange = "7d" | "30d" | "90d";
