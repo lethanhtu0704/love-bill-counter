@@ -100,11 +100,16 @@ export const CoinIcon = (props: SVGProps<SVGSVGElement>) => (
     width="24"
     height="24"
     viewBox="0 0 24 24"
-    fill="currentColor"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     {...props}
   >
-    {/* Chinese gold ingot (元宝/yuanbao) silhouette */}
-    <path d="M3 13h6.2c.5-2.2 4.6-2.2 5.1 0H21l-1.7 4.5c-.3.6-.9 1-1.5 1.1-3.7.5-8 .5-11.7 0-.6-.1-1.2-.5-1.5-1.1L3 13z" />
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.6v8.8" />
+    <path d="M14.8 9.8a2.8 2.8 0 0 0-2.8-1.4c-1.5 0-2.8.9-2.8 2.2 0 1.3 1 1.9 2.8 2.3 1.8.4 2.8.9 2.8 2.3s-1.2 2.2-2.8 2.2a3.1 3.1 0 0 1-3-1.6" />
   </svg>
 );
 

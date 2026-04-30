@@ -120,7 +120,7 @@ src/
 - **Storage:** RTDB path `gold_history/{pushId}` with `{ productCode, productName, buy, sell, sourceUpdatedAt, savedAt }`. Unit is fixed at `1.000đ/Chỉ`.
 - **Refresh Rules:** `GET/POST /api/gold/refresh` fetches PNJ server-side via Firebase Admin and only writes a new snapshot when (a) `buy`/`sell` changed, or (b) the latest snapshot is from a different UTC calendar day (so daily history stays continuous).
 - **Auth:** When `CRON_SECRET` is set, the endpoint accepts either `Authorization: Bearer <CRON_SECRET>` (Vercel Cron) or same-origin browser requests (the manual "Cập nhật giá" button).
-- **Cron:** `vercel.json` schedules `/api/gold/refresh` daily at `30 1 * * *` UTC (≈08:30 Asia/Ho_Chi_Minh) to guarantee a baseline snapshot per day.
+- **Cron:** `vercel.json` schedules `/api/gold/refresh` daily at `0 2 * * *` UTC (≈09:00 Asia/Ho_Chi_Minh) to guarantee a baseline snapshot per day.
 - **UI Flow:** Header (date + last `updateDate` time) → full-width refresh button (`#a23d69`) → current price card with PNJ icon → comparison summary card with period selector (`Tháng này / 7D / 30D / 90D`) computing `((currentSell - lowestSell) / lowestSell) * 100` → SVG line chart (Buy dashed, Sell solid) with `7D / 30D / 90D` selector.
 
 ## 6. Firebase & Data Flow
