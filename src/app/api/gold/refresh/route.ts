@@ -107,8 +107,13 @@ async function refresh(): Promise<{
   const newDay = !latest || !isSameUtcDay(latest.savedAt, now);
   const shouldSave = valueChanged || newDay;
 
-  if (!shouldSave) {
-    return { ok: true, saved: false, snapshot: latest };
+  if (!shouldSave && latest) {
+    await historyRef.child(latest.id).update({ fetchedAt: now });
+    return {
+      ok: true,
+      saved: false,
+      snapshot: { ...latest, fetchedAt: now },
+    };
   }
 
   const newSnap: Omit<GoldSnapshot, "id"> = {
@@ -118,6 +123,7 @@ async function refresh(): Promise<{
     sell,
     sourceUpdatedAt,
     savedAt: now,
+    fetchedAt: now,
   };
 
   const newRef = historyRef.push();

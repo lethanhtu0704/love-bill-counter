@@ -112,6 +112,7 @@ export interface GoldSnapshot {
   sell: number;
   sourceUpdatedAt: number; // epoch (parsed from PNJ updateDate)
   savedAt: number; // epoch when stored
+  fetchedAt?: number; // epoch of latest successful PNJ fetch (refreshed even when value unchanged)
 }
 
 export type GoldComparisonRange = "month" | "7d" | "30d" | "90d";

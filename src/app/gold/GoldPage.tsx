@@ -141,7 +141,7 @@ export default function GoldPage() {
   }, [history, chartRange]);
 
   const headerTime = latest
-    ? format(new Date(latest.sourceUpdatedAt), "HH:mm")
+    ? format(new Date(latest.fetchedAt ?? latest.sourceUpdatedAt), "HH:mm")
     : "--:--";
   const today = format(new Date(), "dd/MM/yyyy");
 
