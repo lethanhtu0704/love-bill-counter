@@ -21,7 +21,7 @@ export default function Receipt({ bill }: ReceiptProps) {
           {/* Title */}
           <h3 className="text-center font-medium mb-2 text-base">
             Hóa Đơn Tiền Phòng
-          </h3>
+          </h3> 
 
           <div className="text-center text-[#aaa] dark:text-[#7c6f64] tracking-[-2px] overflow-hidden whitespace-nowrap">
             --------------------------------
@@ -52,7 +52,7 @@ export default function Receipt({ bill }: ReceiptProps) {
             <div className="font-medium">Điện:</div>
             <div className="flex justify-between mt-1">
               <span>
-                ({bill.currentElectric} - {bill.previousElectric})  = {bill.currentElectric - bill.previousElectric} × {bill.electricPrice.toLocaleString()}
+                ({bill.currentElectric} - {bill.previousElectric}) <br />  = {bill.currentElectric - bill.previousElectric} × {bill.electricPrice.toLocaleString()}
               </span>
               <span>{formatCurrency(bill.electricTotal)}</span>
             </div>
@@ -63,7 +63,7 @@ export default function Receipt({ bill }: ReceiptProps) {
             <div className="font-medium">Nước:</div>
             <div className="flex justify-between mt-1">
               <span>
-                ({bill.currentWater} - {bill.previousWater}) = {bill.currentWater - bill.previousWater} × {bill.waterPrice.toLocaleString()}
+                ({bill.currentWater} - {bill.previousWater}) <br />= {bill.currentWater - bill.previousWater} × {bill.waterPrice.toLocaleString()}
               </span>
               <span>{formatCurrency(bill.waterTotal)}</span>
             </div>
