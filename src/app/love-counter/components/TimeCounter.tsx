@@ -83,7 +83,7 @@ export default function TimeCounter({ startDate, format }: TimeCounterProps) {
 
   return (
     <motion.h1
-      className="font-[family-name:var(--font-playfair)] font-bold text-love-brown drop-shadow-[2px_2px_4px_rgba(255,255,255,0.5)] mb-2.5 z-10"
+      className="font-[family-name:var(--font-playfair)] font-bold text-love-brown drop-shadow-[2px_2px_4px_rgba(255,255,255,0.5)] dark:drop-shadow-[2px_2px_6px_rgba(0,0,0,0.7)] mb-2.5 z-10"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}

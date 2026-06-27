@@ -1,25 +1,141 @@
 @import "tailwindcss";
 
-@theme inline {
-  --color-love-brown: #CB7D7C;
-  --color-love-pink: #a23d69;
-  --color-love-paper: #f4eee8;
-  --color-love-dot: #966F60;
-  --color-love-paper-shadow: rgba(139, 94, 82, 0.3);
+/* Class-based dark mode: `dark:` utilities apply when `.dark` is on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-  --color-bill-primary: #CB7D7C;
-  --color-bill-primary-hover: #a23d69;
-  --color-bill-bg: #f4eee8;
-  --color-bill-white: #ffffff;
-  --color-bill-text-dark: #3a2a2f;
-  --color-bill-text-gray: #966F60;
-  --color-bill-border: #e2d5cb;
+/* ──────────────────────────────────────────────────────────────────────────
+   Theme palette
+
+   Light values live on :root, dark overrides on .dark. The Tailwind tokens in
+   the `@theme inline` block below reference these plain vars, so flipping the
+   `.dark` class on <html> re-themes every `love-*` / `bill-*` utility at once.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  --love-brown: #cb7d7c;
+  --love-pink: #a23d69;
+  --love-paper: #f4eee8;
+  --love-dot: #966f60;
+  --love-beige: #efe5d8;
+  --love-paper-shadow: rgba(139, 94, 82, 0.3);
+
+  --bill-primary: #cb7d7c;
+  --bill-primary-hover: #a23d69;
+  --bill-bg: #f4eee8;
+  --bill-white: #ffffff;
+  --bill-text-dark: #3a2a2f;
+  --bill-text-gray: #966f60;
+  --bill-border: #e2d5cb;
+
+  /* Page background + generic raised surface (used for literal bg-white below) */
+  --page-bg: #f4eee8;
+  --surface: #ffffff;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Warm dark palette — keeps the rose/cream identity, lightened for contrast */
+  --love-brown: #e3a9a8;
+  --love-pink: #e87ba6;
+  --love-paper: #241d1a;
+  --love-dot: #c2a596;
+  --love-beige: #2c2420;
+  --love-paper-shadow: rgba(0, 0, 0, 0.5);
+
+  --bill-primary: #d98b8a;
+  --bill-primary-hover: #e87ba6;
+  --bill-bg: #1a1411;
+  --bill-white: #241d1a;
+  --bill-text-dark: #f2e7df;
+  --bill-text-gray: #b8a99e;
+  --bill-border: #3a302b;
+
+  --page-bg: #1a1411;
+  --surface: #2d2421;
+
+  /* Invert Tailwind's gray ramp so every literal gray utility (incl. hover /
+     opacity variants, which all reference these vars) flips coherently:
+     gray-50 = darkest surface … gray-900 = lightest text. */
+  --color-gray-50: #211b18;
+  --color-gray-100: #2a2320;
+  --color-gray-200: #383029;
+  --color-gray-300: #4d423a;
+  --color-gray-400: #978579;
+  --color-gray-500: #b0a096;
+  --color-gray-600: #c2b3a9;
+  --color-gray-700: #d6cabf;
+  --color-gray-800: #e9ded4;
+  --color-gray-900: #f3eae1;
+  --color-gray-950: #faf4ee;
+
+  /* Light accent *tints* used as chip/badge backgrounds → dark, hue-preserving.
+     Overriding the var catches plain, hover and /opacity variants at once. */
+  --color-blue-50: color-mix(in oklab, #3b82f6 20%, var(--surface));
+  --color-sky-100: color-mix(in oklab, #0ea5e9 24%, var(--surface));
+  --color-rose-50: color-mix(in oklab, #f43f5e 18%, var(--surface));
+  --color-rose-200: color-mix(in oklab, #f43f5e 28%, var(--surface));
+  --color-emerald-50: color-mix(in oklab, #10b981 18%, var(--surface));
+  --color-emerald-100: color-mix(in oklab, #10b981 26%, var(--surface));
+  --color-red-50: color-mix(in oklab, #ef4444 18%, var(--surface));
+  --color-red-100: color-mix(in oklab, #ef4444 26%, var(--surface));
+  --color-purple-50: color-mix(in oklab, #a855f7 18%, var(--surface));
+  --color-purple-100: color-mix(in oklab, #a855f7 26%, var(--surface));
+  --color-yellow-50: color-mix(in oklab, #eab308 18%, var(--surface));
+  --color-yellow-100: color-mix(in oklab, #eab308 26%, var(--surface));
+  --color-pink-50: color-mix(in oklab, #ec4899 16%, var(--surface));
+  --color-pink-100: color-mix(in oklab, #ec4899 24%, var(--surface));
+
+  /* Paired accent *text* used on those chips → lightened so it stays legible. */
+  --color-blue-600: #7ea8f4;
+  --color-sky-700: #7dd3fc;
+  --color-rose-600: #fb9aa6;
+  --color-rose-700: #fda4af;
+  --color-emerald-600: #34d399;
+  --color-emerald-700: #6ee7b7;
+  --color-red-600: #f87171;
+  --color-red-700: #fca5a5;
+  --color-purple-600: #c084fc;
+  --color-yellow-600: #fbbf24;
+  --color-yellow-800: #fde68a;
+}
+
+@theme inline {
+  --color-love-brown: var(--love-brown);
+  --color-love-pink: var(--love-pink);
+  --color-love-paper: var(--love-paper);
+  --color-love-dot: var(--love-dot);
+  --color-love-beige: var(--love-beige);
+  --color-love-paper-shadow: var(--love-paper-shadow);
+
+  --color-bill-primary: var(--bill-primary);
+  --color-bill-primary-hover: var(--bill-primary-hover);
+  --color-bill-bg: var(--bill-bg);
+  --color-bill-white: var(--bill-white);
+  --color-bill-text-dark: var(--bill-text-dark);
+  --color-bill-text-gray: var(--bill-text-gray);
+  --color-bill-border: var(--bill-border);
 
   --pink: #ecb2ba;
   --pink-dark: #c6939a;
   --tape-pink: #ffb7b6;
   --tape-edge-gray: #b7b49d;
   --transparent: rgba(255, 255, 255, 0);
+}
+
+.dark .bg-white {
+  background-color: var(--surface);
+}
+
+.dark .bg-love-pink,
+.dark .bg-bill-primary,
+.dark .hover\:bg-bill-primary:hover {
+  background-color: #a23d69;
+}
+.dark .bg-bill-primary-hover,
+.dark .hover\:bg-bill-primary-hover:hover {
+  background-color: #8d3259;
 }
 
 @keyframes shake {
@@ -38,9 +154,13 @@ html, body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden !important;
-  position: relative; 
+  position: relative;
   margin: 0;
   padding: 0;
+}
+
+body {
+  background-color: var(--page-bg);
 }
 
 /* Music player range slider */

@@ -550,7 +550,7 @@ export default function MusicPlayerPage() {
           <button
             type="button"
             onClick={togglePlay}
-            className="w-16 h-16 rounded-full bg-love-brown flex items-center justify-center shadow-lg transition hover:opacity-90"
+            className="w-16 h-16 rounded-full bg-love-brown dark:bg-[#a23d69] flex items-center justify-center shadow-lg transition hover:opacity-90"
           >
             {isPlaying ? (
               <PauseIcon className="w-7 h-7 text-white" />
@@ -588,7 +588,7 @@ export default function MusicPlayerPage() {
           tabIndex={0}
           onClick={() => setView("now-playing")}
           onKeyDown={(e) => { if (e.key === "Enter") setView("now-playing"); }}
-          className="w-full flex items-center gap-3 rounded-2xl bg-white/90 backdrop-blur-md px-3 py-2.5 shadow-xl border border-love-brown/10 text-left cursor-pointer"
+          className="w-full flex items-center gap-3 rounded-2xl bg-white/90 dark:bg-love-paper/90 backdrop-blur-md px-3 py-2.5 shadow-xl border border-love-brown/10 text-left cursor-pointer"
         >
           {/* Tiny art */}
           <div className="w-11 h-11 shrink-0 rounded-xl overflow-hidden bg-love-dot/10 shadow-sm">
@@ -634,7 +634,7 @@ export default function MusicPlayerPage() {
   // ──────── Bottom Tabs ────────
   function renderTabs() {
     return (
-      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-40 w-[89%] max-w-md flex rounded-2xl overflow-hidden bg-white/60 backdrop-blur-md shadow-lg border border-love-brown/10">
+      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-40 w-[89%] max-w-md flex rounded-2xl overflow-hidden bg-white/60 dark:bg-love-paper/80 backdrop-blur-md shadow-lg border border-love-brown/10">
         <button
           type="button"
           onClick={() => setView("library")}

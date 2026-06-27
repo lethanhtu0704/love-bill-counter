@@ -90,7 +90,7 @@ export default function GoldChart({ data }: Props) {
         <path
           d={view.sellPath}
           fill="none"
-          stroke="#a23d69"
+          stroke="var(--love-pink)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -99,7 +99,7 @@ export default function GoldChart({ data }: Props) {
         <path
           d={view.buyPath}
           fill="none"
-          stroke="#CB7D7C"
+          stroke="var(--love-brown)"
           strokeWidth="2"
           strokeDasharray="4 3"
           strokeLinejoin="round"
@@ -112,7 +112,7 @@ export default function GoldChart({ data }: Props) {
             cx={view.sellPoints[view.sellPoints.length - 1].x}
             cy={view.sellPoints[view.sellPoints.length - 1].y}
             r="3"
-            fill="#a23d69"
+            fill="var(--love-pink)"
           />
         )}
         {view.buyPoints.length > 0 && (
@@ -120,7 +120,7 @@ export default function GoldChart({ data }: Props) {
             cx={view.buyPoints[view.buyPoints.length - 1].x}
             cy={view.buyPoints[view.buyPoints.length - 1].y}
             r="3"
-            fill="#CB7D7C"
+            fill="var(--love-brown)"
           />
         )}
 
@@ -132,7 +132,7 @@ export default function GoldChart({ data }: Props) {
             y={HEIGHT - 6}
             textAnchor="middle"
             fontSize="9"
-            fill="#966F60"
+            fill="var(--love-dot)"
           >
             {label.label}
           </text>
@@ -143,14 +143,14 @@ export default function GoldChart({ data }: Props) {
         <span className="flex items-center gap-1.5">
           <span
             className="inline-block h-[2px] w-4 rounded-full"
-            style={{ background: "#a23d69" }}
+            style={{ background: "var(--love-pink)" }}
           />
           Giá bán
         </span>
         <span className="flex items-center gap-1.5">
           <span
             className="inline-block h-[2px] w-4 rounded-full border-t-2 border-dashed"
-            style={{ borderColor: "#CB7D7C" }}
+            style={{ borderColor: "var(--love-brown)" }}
           />
           Giá mua
         </span>

@@ -104,9 +104,9 @@ export default memo(function MilestoneCard({
     >
       {/* Date Marker */}
       <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-10 max-md:-left-6">
-        <div className="w-4 h-4 rounded-full bg-love-pink border-4 border-white shadow-sm" />
+        <div className="w-4 h-4 rounded-full bg-love-pink border-4 border-white dark:border-love-paper shadow-sm" />
         <div
-          className="mt-2 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-love-brown shadow-sm cursor-pointer hover:bg-white transition-colors"
+          className="mt-2 bg-white/80 dark:bg-love-paper/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-love-brown shadow-sm cursor-pointer hover:bg-white dark:hover:bg-love-paper transition-colors"
           onClick={() => !isPlaceholder && setEditingDate(true)}
         >
           {editingDate ? (

@@ -49,6 +49,13 @@
   --transparent: rgba(213, 224, 249, 0);
 }
 
+/* Dark mode: turn the white photo-note into a warm dark card */
+.dark .white {
+  --paper-color: #2a2320;
+  --paper-dark: rgba(0, 0, 0, 0.45);
+  --transparent: rgba(0, 0, 0, 0);
+}
+
 .tape-section {
   position: absolute;
   width: 100%;

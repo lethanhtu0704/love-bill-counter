@@ -4,6 +4,9 @@ import { Suspense } from "react";
 import "./globals.css";
 import { SerwistProvider } from "./serwist";
 import BottomNavBar from "@/components/BottomNavBar";
+import { ThemeProvider } from "@/components/ThemeProvider";
+
+const themeInitScript = `(function(){try{if(localStorage.getItem('theme')==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -29,14 +32,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className={`${playfair.variable} ${inter.variable} antialiased`}>
-        <SerwistProvider swUrl="/serwist/sw.js">
-          {children}
-          <Suspense fallback={null}>
-            <BottomNavBar />
-          </Suspense>
-        </SerwistProvider>
+        <ThemeProvider>
+          <SerwistProvider swUrl="/serwist/sw.js">
+            {children}
+            <Suspense fallback={null}>
+              <BottomNavBar />
+            </Suspense>
+          </SerwistProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

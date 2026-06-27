@@ -23,6 +23,7 @@ import {
 import TimeCounter from "./components/TimeCounter";
 import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
+import ThemeToggle from "@/components/ThemeToggle";
 import { validatePin } from "./actions";
 
 // const DotLottiePlayer = dynamic(
@@ -184,13 +185,14 @@ export default function LoveCounterPage() {
   if (!authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-repeat-x bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
-        <div className="pointer-events-none fixed inset-0 z-0 bg-black/20" />
+        <div className="pointer-events-none fixed inset-0 z-0 bg-black/20 dark:bg-black/55" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative z-10 bg-love-paper/90 backdrop-blur-sm rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-5 w-[320px]"
         >
-          <div className="text-4xl">🔒</div>
+          {/* Secret theme toggle — tap to switch light/dark across the app */}
+          <ThemeToggle />
           <h2 className="font-[family-name:var(--font-playfair)] text-love-brown text-xl font-semibold">
             Nhập mật khẩu để vào
           </h2>
@@ -257,7 +259,7 @@ export default function LoveCounterPage() {
   return (
     <div className="love-page font-[family-name:var(--font-playfair)] text-love-brown bg-[url('/assets/desktop-background.png')] bg-repeat-x bg-cover bg-center bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
       {/* Dark overlay */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-black/10" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-black/10 dark:bg-black/45" />
 
       <div className="relative z-[1] mx-auto max-w-[1000px] px-5 py-10">
         {/* Header */}
@@ -274,7 +276,7 @@ export default function LoveCounterPage() {
             <select
               value={timeFormat}
               onChange={(e) => setTimeFormat(e.target.value as TimeFormat)}
-              className="rounded-full bg-white/60 backdrop-blur-sm px-4 py-2 text-sm border border-love-brown/20 text-love-brown outline-none cursor-pointer"
+              className="rounded-full bg-white/60 dark:bg-love-paper/70 backdrop-blur-sm px-4 py-2 text-sm border border-love-brown/20 text-love-brown outline-none cursor-pointer"
             >
               {TIME_FORMATS.map((f) => (
                 <option key={f.value} value={f.value}>
@@ -285,7 +287,7 @@ export default function LoveCounterPage() {
 
             <button
               onClick={() => setShowDatePicker(true)}
-              className="rounded-full bg-white/60 backdrop-blur-sm px-4 py-2 text-sm border border-love-brown/20 text-love-brown hover:bg-white/80 transition-colors cursor-pointer"
+              className="rounded-full bg-white/60 dark:bg-love-paper/70 backdrop-blur-sm px-4 py-2 text-sm border border-love-brown/20 text-love-brown hover:bg-white/80 dark:hover:bg-love-paper transition-colors cursor-pointer"
             >
               📅 Đổi ngày bắt đầu
             </button>

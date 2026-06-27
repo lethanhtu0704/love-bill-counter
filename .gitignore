@@ -43,4 +43,4 @@ next-env.d.ts
 
 # Agent skills
 .agents/skills
-
+.claude

@@ -16,14 +16,14 @@ export default function Receipt({ bill }: ReceiptProps) {
     <div
       className="relative"
     >
-      <div className="p-6 font-[family-name:var(--font-inter)] text-sm text-[#333]" style={{ fontFamily: "'Roboto Mono', monospace" }}>
+      <div className="p-6 font-[family-name:var(--font-inter)] text-sm text-[#333] dark:text-[#e9ded4]" style={{ fontFamily: "'Roboto Mono', monospace" }}>
         <div className="flex flex-col gap-2">
           {/* Title */}
           <h3 className="text-center font-medium mb-2 text-base">
             Hóa Đơn Tiền Phòng
           </h3>
 
-          <div className="text-center text-[#aaa] tracking-[-2px] overflow-hidden whitespace-nowrap">
+          <div className="text-center text-[#aaa] dark:text-[#7c6f64] tracking-[-2px] overflow-hidden whitespace-nowrap">
             --------------------------------
           </div>
 
@@ -37,7 +37,7 @@ export default function Receipt({ bill }: ReceiptProps) {
             <span>{format(billDate, "dd/MM/yyyy", { locale: vi })}</span>
           </div>
 
-          <div className="text-center text-[#aaa] tracking-[-2px] overflow-hidden whitespace-nowrap">
+          <div className="text-center text-[#aaa] dark:text-[#7c6f64] tracking-[-2px] overflow-hidden whitespace-nowrap">
             --------------------------------
           </div>
 
@@ -88,7 +88,7 @@ export default function Receipt({ bill }: ReceiptProps) {
           </div>
 
           {/* Total */}
-          <div className="flex justify-between font-bold text-base mt-2 border-t border-dashed border-[#ccc] pt-2">
+          <div className="flex justify-between font-bold text-base mt-2 border-t border-dashed border-[#ccc] dark:border-[#4d423a] pt-2">
             <span>Tổng cộng:</span>
             <span>{formatCurrency(bill.totalAmount)}</span>
           </div>
