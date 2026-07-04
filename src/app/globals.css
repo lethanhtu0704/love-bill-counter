@@ -150,6 +150,26 @@
   animation: shake 0.4s ease-in-out;
 }
 
+/* Lightweight entrance animations — CSS replacements for framer-motion
+   (compositor-only transform/opacity, cheap on iOS). */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@utility animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out both;
+}
+
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@utility animate-fade-in-scale {
+  animation: fade-in-scale 0.25s ease-out both;
+}
+
 html, body {
   width: 100%;
   max-width: 100%;

@@ -12,7 +12,7 @@ function getPrivateKey(): string {
 export function getFirebaseAdminApp(): admin.app.App {
   if (admin.apps.length > 0) return admin.app();
 
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  let projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = getPrivateKey();
   const databaseURL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
@@ -21,6 +21,19 @@ export function getFirebaseAdminApp(): admin.app.App {
     throw new Error(
       "Missing Firebase Admin credentials. Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY."
     );
+  }
+
+  // FCM's v1 send API is scoped by projectId, so a projectId that doesn't
+  // match the service account's own project makes every push fail with
+  // messaging/mismatched-credential — while RTDB (scoped by databaseURL)
+  // keeps working, hiding the misconfiguration. The service account email
+  // (<name>@<project-id>.iam.gserviceaccount.com) is authoritative.
+  const emailProject = clientEmail.split("@")[1]?.split(".")[0];
+  if (emailProject && emailProject !== projectId) {
+    console.warn(
+      `FIREBASE_ADMIN_PROJECT_ID ("${projectId}") does not match the service account's project ("${emailProject}"). Using "${emailProject}".`
+    );
+    projectId = emailProject;
   }
 
   return admin.initializeApp({

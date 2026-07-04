@@ -9,7 +9,6 @@ import {
   differenceInYears,
   differenceInSeconds,
 } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
 import type { TimeFormat } from "@/lib/constants";
 
 interface TimeCounterProps {
@@ -39,9 +38,12 @@ export default function TimeCounter({ startDate, format }: TimeCounterProps) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
+    // Only the "full" format displays seconds — the others change at most daily,
+    // so a slower tick avoids waking the CPU every second on the phone.
+    const ms = format === "full" ? 1000 : 60_000;
+    const interval = setInterval(() => setNow(new Date()), ms);
     return () => clearInterval(interval);
-  }, []);
+  }, [format]);
 
   const parts = getTimeParts(startDate, now);
 
@@ -82,23 +84,11 @@ export default function TimeCounter({ startDate, format }: TimeCounterProps) {
   };
 
   return (
-    <motion.h1
-      className="font-[family-name:var(--font-playfair)] font-bold text-love-brown drop-shadow-[2px_2px_4px_rgba(255,255,255,0.5)] dark:drop-shadow-[2px_2px_6px_rgba(0,0,0,0.7)] mb-2.5 z-10"
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-    >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={format}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderCounter()}
-        </motion.div>
-      </AnimatePresence>
-    </motion.h1>
+    <h1 className="animate-fade-in-up font-[family-name:var(--font-playfair)] font-bold text-love-brown drop-shadow-[2px_2px_4px_rgba(255,255,255,0.5)] dark:drop-shadow-[2px_2px_6px_rgba(0,0,0,0.7)] mb-2.5 z-10">
+      {/* key remounts on format change so the entrance animation replays */}
+      <div key={format} className="animate-fade-in-scale">
+        {renderCounter()}
+      </div>
+    </h1>
   );
 }

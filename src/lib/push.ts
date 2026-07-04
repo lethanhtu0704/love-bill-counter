@@ -4,10 +4,7 @@ import { getMessaging, getToken, isSupported, onMessage } from "firebase/messagi
 import app from "@/lib/firebase";
 
 let foregroundListenerAttached = false;
-
-const LS_TOKEN_KEY = "fcmToken";
-const LS_TOKEN_TS_KEY = "fcmTokenSavedAt";
-const TOKEN_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+let tokenRegisteredThisSession = false;
 
 async function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === "undefined") return null;
@@ -58,36 +55,15 @@ export async function notifyMilestoneAddedLocal() {
   );
 }
 
-function getCachedToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const token = localStorage.getItem(LS_TOKEN_KEY);
-    const ts = Number(localStorage.getItem(LS_TOKEN_TS_KEY) || "0");
-    if (!token) return null;
-    if (!ts || Date.now() - ts > TOKEN_CACHE_MAX_AGE_MS) return null;
-    return token;
-  } catch {
-    return null;
-  }
-}
-
-function cacheToken(token: string) {
-  try {
-    localStorage.setItem(LS_TOKEN_KEY, token);
-    localStorage.setItem(LS_TOKEN_TS_KEY, String(Date.now()));
-  } catch {
-    // ignore
-  }
-}
-
 export async function ensureFcmToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   if (!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY) return null;
   if (!("Notification" in window)) return null;
 
-  // Fast path
-  const cached = getCachedToken();
-  if (cached && Notification.permission === "granted") return cached;
+  // Already fetched + registered during this page session — nothing to do.
+  if (tokenRegisteredThisSession && Notification.permission === "granted") {
+    return null;
+  }
 
   // IMPORTANT (Chrome / iOS): request permission without any prior `await`
   // so it's still considered a user gesture.
@@ -112,20 +88,22 @@ export async function ensureFcmToken(): Promise<string | null> {
 
   if (!token) return null;
 
-  cacheToken(token);
-
-  // Best-effort: register token to server
+  // Always (re-)register the current token: FCM rotates tokens, and the
+  // server prunes tokens it believes are dead — a device that never
+  // re-registers becomes silently unreachable.
   try {
     const res = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ token, userAgent: navigator.userAgent }),
     });
-    if (!res.ok) {
+    if (res.ok) {
+      tokenRegisteredThisSession = true;
+    } else {
       console.error("FCM subscribe failed:", res.status);
     }
   } catch {
-    // Ignore subscribe failures
+    // Ignore subscribe failures — retried on next call
   }
 
   return token;

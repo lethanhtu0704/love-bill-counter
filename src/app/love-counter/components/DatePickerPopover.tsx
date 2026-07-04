@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   format,
   addMonths,
@@ -42,12 +41,7 @@ export default function DatePickerPopover({
       {/* Backdrop */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 10 }}
-        className="absolute z-50 top-full mt-3 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-xl border border-pink-100 p-5 w-[320px]"
-      >
+      <div className="animate-fade-in-scale absolute z-50 top-full mt-3 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-xl border border-pink-100 p-5 w-[320px]">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button
@@ -114,7 +108,7 @@ export default function DatePickerPopover({
         >
           Đóng
         </button>
-      </motion.div>
+      </div>
     </>
   );
 }

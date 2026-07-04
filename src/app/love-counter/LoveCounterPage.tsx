@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
-import dynamic from "next/dynamic";
 import {
   getLoveConfig,
   updateLoveConfig,
@@ -25,11 +23,6 @@ import MilestoneCard from "./components/MilestoneCard";
 import DatePickerPopover from "./components/DatePickerPopover";
 import ThemeToggle from "@/components/ThemeToggle";
 import { validatePin } from "./actions";
-
-// const DotLottiePlayer = dynamic(
-//   () => import("@lottiefiles/dotlottie-react").then((mod) => mod.DotLottieReact),
-//   { ssr: false }
-// );
 
 export default function LoveCounterPage() {
   // ── Auth ──────────────────────────────────────────────────────────────
@@ -184,13 +177,11 @@ export default function LoveCounterPage() {
   // ── Auth screen ───────────────────────────────────────────────────────
   if (!authenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[url('/assets/desktop-background.png')] bg-cover bg-center bg-repeat-x bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
+      <div className="min-h-screen flex items-center justify-center">
+        {/* Fixed background layer — replaces bg-fixed, which iOS Safari repaints on every scroll frame */}
+        <div className="pointer-events-none fixed inset-0 z-0 bg-[url('/assets/desktop-background.png')] bg-cover bg-center max-md:bg-[url('/assets/iphone-background.png')]" />
         <div className="pointer-events-none fixed inset-0 z-0 bg-black/20 dark:bg-black/55" />
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 bg-love-paper/90 backdrop-blur-sm rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-5 w-[320px]"
-        >
+        <div className="relative z-10 animate-fade-in-up bg-love-paper/90 backdrop-blur-sm rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-5 w-[320px]">
           {/* Secret theme toggle — tap to switch light/dark across the app */}
           <ThemeToggle />
           <h2 className="font-[family-name:var(--font-playfair)] text-love-brown text-xl font-semibold">
@@ -251,13 +242,15 @@ export default function LoveCounterPage() {
               <p className="text-red-400 text-sm text-center animate-shake">Mã không đúng, thử lại nha eiu ❤</p>
             )}
           </form>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="love-page font-[family-name:var(--font-playfair)] text-love-brown bg-[url('/assets/desktop-background.png')] bg-repeat-x bg-cover bg-center bg-fixed bg-no-repeat max-md:bg-[url('/assets/iphone-background.png')]">
+    <div className="love-page font-[family-name:var(--font-playfair)] text-love-brown">
+      {/* Fixed background layer — replaces bg-fixed, which iOS Safari repaints on every scroll frame */}
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[url('/assets/desktop-background.png')] bg-cover bg-center max-md:bg-[url('/assets/iphone-background.png')]" />
       {/* Dark overlay */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-black/10 dark:bg-black/45" />
 
@@ -276,7 +269,7 @@ export default function LoveCounterPage() {
             <select
               value={timeFormat}
               onChange={(e) => setTimeFormat(e.target.value as TimeFormat)}
-              className="rounded-full bg-white/60 dark:bg-love-paper/70 backdrop-blur-sm px-4 py-2 text-sm border border-love-brown/20 text-love-brown outline-none cursor-pointer"
+              className="rounded-full bg-white/80 dark:bg-love-paper/80 px-4 py-2 text-sm border border-love-brown/20 text-love-brown outline-none cursor-pointer"
             >
               {TIME_FORMATS.map((f) => (
                 <option key={f.value} value={f.value}>
@@ -287,7 +280,7 @@ export default function LoveCounterPage() {
 
             <button
               onClick={() => setShowDatePicker(true)}
-              className="rounded-full bg-white/60 dark:bg-love-paper/70 backdrop-blur-sm px-4 py-2 text-sm border border-love-brown/20 text-love-brown hover:bg-white/80 dark:hover:bg-love-paper transition-colors cursor-pointer"
+              className="rounded-full bg-white/80 dark:bg-love-paper/80 px-4 py-2 text-sm border border-love-brown/20 text-love-brown hover:bg-white dark:hover:bg-love-paper transition-colors cursor-pointer"
             >
               📅 Đổi ngày bắt đầu
             </button>
@@ -308,20 +301,9 @@ export default function LoveCounterPage() {
 
           {milestonesLoading ? (
             <div className="flex flex-col items-center gap-4 py-10 w-full max-w-[560px] mx-auto">
-              {/* <div className="h-40 w-40">
-                <DotLottiePlayer
-                  src="/animations/cat-loading.json"
-                  loop
-                  autoplay
-                />
-              </div> */}
-              <motion.div
-                animate={{ opacity: [0.9, 1, 0.9] }}
-                transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-                className="text-love-brown/60 text-sm italic font-medium"
-              >
+              <div className="animate-pulse text-love-brown/60 text-sm italic font-medium">
                 Em bồ chờ xíu nha...
-              </motion.div>
+              </div>
             </div>
           ) : (
             milestones.map((m, i) => (
@@ -337,18 +319,14 @@ export default function LoveCounterPage() {
           )}
 
           {/* Add milestone button */}
-          <motion.div
-            className="flex justify-center mt-10"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          <div className="flex justify-center mt-10">
             <button
               onClick={handleAddMilestone}
-              className="rounded-full bg-love-paper px-8 py-3 text-love-brown font-semibold shadow-md border border-love-brown/20 hover:shadow-lg transition-shadow cursor-pointer"
+              className="rounded-full bg-love-paper px-8 py-3 text-love-brown font-semibold shadow-md border border-love-brown/20 hover:shadow-lg hover:scale-105 active:scale-95 transition-[transform,box-shadow] cursor-pointer"
             >
               + Thêm kỷ niệm mới
             </button>
-          </motion.div>
+          </div>
 
           {/* Footer banner */}
           <div className="relative flex justify-center mt-25 mb-12">

@@ -12,11 +12,10 @@ A unified Next.js web application that bundles four primary features:
 - **PWA Integration:** Serwist (`@serwist/turbopack`) for Service Worker (`src/app/sw.ts`), offline support (`src/app/~offline/page.tsx`), and caching.
 - **Backend & Database:** Firebase (Client SDK: `firebase`, Server SDK: `firebase-admin`).
 - **Styling:** Tailwind CSS (v4) and general CSS for specific components (`MilestoneCard.css`). For textarea or input, using font-size 16 or above to make sure ios not auto zoom when focus.
-- **Animations:** Framer Motion (`framer-motion`) — used only in feature pages (love counter, room bill modals), **not** in the root layout shell to minimize initial bundle size.
+- **Animations:** Framer Motion (`framer-motion`) — used **only in Room Bill modals** (which are lazy-loaded on open), **not** in the root layout shell or the Love Counter. The Love Counter uses pure CSS entrance animations (`animate-fade-in-up` / `animate-fade-in-scale` in `globals.css`) so the page ships no animation library — this keeps scrolling/loading smooth on iPhone.
 - **Drag & Drop:** `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (~15 kb) — used in the Music Player library for accessible, touch-friendly song reordering.
 - **Date Utilities:** `date-fns` for robust date math and formatting.
 - **AI Integration:** Google GenAI SDK (`@google/genai`) for Gemini-powered meal plan generation via server-side Route Handler.
-- **Utilities:** `react-to-print` (useful for printing or exporting Room Bill receipts).
 
 ## 3. Directory Structure
 
@@ -83,6 +82,13 @@ src/
 - **`React.memo`**: Applied to `MilestoneCard` which receives stable callbacks from the parent.
 - **Stable callbacks**: `useCallback` with functional setState eliminates unnecessary re-renders of memoized children.
 
+### D. iOS / iPhone Rendering Rules (learned the hard way — keep these)
+- **Never use `background-attachment: fixed` (Tailwind `bg-fixed`)**: iOS Safari doesn't composite it and repaints the full-screen image on every scroll frame → visible scroll jank. Instead, render the background on a separate `position: fixed; inset: 0` div behind the content (see `LoveCounterPage`).
+- **Avoid per-item `backdrop-blur`**: each blurred element is a separate GPU pass on iOS. One blur on a single static element (e.g. the PIN card) is fine; a blur on every milestone date-chip is not — those use a near-opaque solid background instead.
+- **Prefer CSS entrance animations over framer-motion for list items**: `whileInView` attaches an IntersectionObserver + spring per card. The milestone timeline uses a one-shot `animate-fade-in-up` keyframe with a small capped `animation-delay` stagger.
+- **Lazy-load heavy images**: milestone photos are large base64/remote images — `loading="lazy" decoding="async"` keeps first paint fast and decodes off the critical path.
+- **Slow down timers that aren't visible**: `TimeCounter` ticks every second only in the `full` format (the only one showing seconds); other formats tick once a minute.
+
 ## 5. Key Features & Flow
 
 ### A. The Love Counter (`src/app/love-counter/`)
@@ -112,7 +118,22 @@ src/
 
 ### E. Push Notifications (`src/app/api/push/`)
 - **Purpose:** Engage users by alerting them about relationship milestones.
-- **Flow:** Client subscribes via `api/push/subscribe` → Token stored hashed in RTDB → `notify-milestone/` dispatches via FCM → Invalid tokens cleaned up from cached snapshot (no redundant reads).
+- **Flow:** Client subscribes via `api/push/subscribe` → Token stored hashed in RTDB (`pushTokens/{sha256(token)}`) → `notify-milestone/` dispatches via FCM `sendEachForMulticast` → Invalid tokens cleaned up from cached snapshot (no redundant reads).
+- **Two notification paths:** the device that adds the milestone shows an immediate **local** notification (`notifyMilestoneAddedLocal`); every registered device (including the sender) gets the **FCM push**, displayed by the `push` handler in `sw.ts`. Both use the same `tag` so the sender doesn't see duplicates. ⚠️ This means "I saw a notification on my own phone" does **not** prove FCM works — the local path masks FCM failures.
+
+#### Incident (2026-07): pushes only appeared on the sender's phone
+- **Root cause:** `FIREBASE_ADMIN_PROJECT_ID` was set to `ext-bill-counter` (typo) instead of `next-bill-counter`. FCM's v1 send API is **scoped by project ID**, so every send failed with `messaging/mismatched-credential` ("Permission denied on resource project ext-bill-counter") — `sent: 0` for all 8 registered devices. RTDB kept working because it is scoped by `databaseURL`, not by the credential's projectId, which hid the misconfiguration everywhere else in the app. The sender still saw the local notification, making the feature look "half working".
+- **Fix:**
+  1. `firebaseAdmin.ts` now derives the authoritative project ID from the service-account email (`<name>@<project-id>.iam.gserviceaccount.com`) and warns + overrides when `FIREBASE_ADMIN_PROJECT_ID` doesn't match — so a wrong env value can never break FCM again. Still: correct the value in Vercel/`.env.local`.
+  2. `notify-milestone` logs `sent/failed/errorsByCode` to the server console — a `200` response with `sent: 0` is otherwise invisible. **When debugging push, always check Vercel function logs for this line first.**
+  3. `ensureFcmToken` (client) no longer trusts a 7-day localStorage token cache: it fetches the current token and re-POSTs `/api/push/subscribe` once per page session. FCM rotates tokens and the server prunes dead ones — a device that never re-registers becomes silently unreachable.
+- **Verified** with `sendEachForMulticast(msg, dryRun: true)` against real tokens: wrong projectId → 8/8 `mismatched-credential`; corrected projectId → 7/8 success (1 genuinely stale token, which the cleanup path removes on the next real send).
+
+#### Notes for future implementation
+- **iOS requirements:** web push only works when the app is **installed to the Home Screen** (PWA) on iOS 16.4+, and permission must be requested from a **user gesture** — `ensureFcmToken` deliberately calls `Notification.requestPermission()` before any `await` so the gesture isn't lost. Each user must open Love Counter once (and tap "+ Thêm kỷ niệm mới" or already have permission) for their device to register.
+- **Dry-run is the safe test:** `messaging.sendEachForMulticast(message, true)` validates credentials/tokens against the real FCM API without delivering anything — use it instead of spamming real devices.
+- **`webpush.fcmOptions.link`** with a relative path (`/love-counter`) is accepted by FCM in practice; clicks are handled by the `notificationclick` handler in `sw.ts` via `data.url` anyway.
+- The service worker displays pushes with its own generic `push` event handler in `sw.ts` (no Firebase config needed in the SW). If FCM payload shapes change, update that handler — it reads `notification.*` first, then `data.*`, and unwraps `data.FCM_MSG`.
 
 ### F. Gold Tracker (`src/app/gold/`)
 - **Purpose:** Track the daily price of `Nhẫn Trơn PNJ 999.9` (PNJ `masp: N24K`) and surface deviation from the period low.
@@ -132,3 +153,5 @@ src/
 ## 7. Development & Deployment Notes
 - **PWA:** The app is completely offline-capable. New static assets or pages should be registered in `sw.ts` or `serwist.ts`.
 - **Environment Variables:** Firebase Admin requires `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`. Gemini AI requires `GEMINI_API_KEY`.
+  - ⚠️ `FIREBASE_ADMIN_PROJECT_ID` **must** be the project the service account belongs to (the part before `.iam.gserviceaccount.com` in the client email). A mismatch breaks FCM sends only (RTDB keeps working) — see the push-notifications incident note above. `firebaseAdmin.ts` self-corrects and logs a warning, but fix the env value anyway.
+- **Known heavy assets:** `public/assets/desktop-background.png` and `iphone-background.png` are ~2.15 MB each — above the Serwist precache limit, so they are fetched from the network and excluded from offline cache. Converting them to WebP/AVIF (~200 KB) would speed up first load on iPhone noticeably.

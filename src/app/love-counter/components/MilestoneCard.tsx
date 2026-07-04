@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useMemo, memo } from "react";
-import { motion } from "framer-motion";
 import { format } from "date-fns";
 import "./css/MilestoneCard.css";
 import type { Milestone } from "@/lib/types";
@@ -94,19 +93,16 @@ export default memo(function MilestoneCard({
   };
 
   return (
-    <motion.div
-      className={`flex items-center justify-center mb-20 relative z-[1] max-md:flex-col max-md:items-start max-md:ml-12 ${isLeft ? "" : "flex-row-reverse"
+    <div
+      className={`animate-fade-in-up flex items-center justify-center mb-20 relative z-[1] max-md:flex-col max-md:items-start max-md:ml-12 ${isLeft ? "" : "flex-row-reverse"
         }`}
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay: index * 0.15 }}
+      style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
     >
       {/* Date Marker */}
       <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-10 max-md:-left-6">
         <div className="w-4 h-4 rounded-full bg-love-pink border-4 border-white dark:border-love-paper shadow-sm" />
         <div
-          className="mt-2 bg-white/80 dark:bg-love-paper/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-love-brown shadow-sm cursor-pointer hover:bg-white dark:hover:bg-love-paper transition-colors"
+          className="mt-2 bg-white/95 dark:bg-love-paper/95 px-3 py-1 rounded-full text-xs font-bold text-love-brown shadow-sm cursor-pointer hover:bg-white dark:hover:bg-love-paper transition-colors"
           onClick={() => !isPlaceholder && setEditingDate(true)}
         >
           {editingDate ? (
@@ -126,15 +122,11 @@ export default memo(function MilestoneCard({
 
       {/* Content Card */}
       <div className={`relative w-[45%] max-md:w-full ${isLeft ? "pr-12 max-md:pr-0 max-md:pl-4" : "pl-12 max-md:pl-4"}`}>
-        <motion.div
-          className={`relative paper white p-5 rounded-sm shadow-md border border-love-brown/10 ${isLeft ? "-rotate-[2deg]" : "rotate-[2deg]"
+        <div
+          className={`relative paper white p-5 rounded-sm shadow-md border border-love-brown/10 transition-transform duration-300 hover:rotate-0 hover:scale-[1.02] ${isLeft ? "-rotate-[2deg]" : "rotate-[2deg]"
             }`}
-          whileHover={{ rotate: 0, scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 300 }}
         >
           <div className={tapeClass}></div>
-          {/* Paper Texture Overlay */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
 
           {/* Image Area */}
           <div
@@ -145,6 +137,8 @@ export default memo(function MilestoneCard({
               <img
                 src={milestone.imageUrl}
                 alt={milestone.title}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
             ) : (
@@ -228,16 +222,18 @@ export default memo(function MilestoneCard({
             <img
               src={milestone.charmImage}
               alt="charm"
+              loading="lazy"
+              decoding="async"
               className={`absolute w-15  drop-shadow-sm z-100 pointer-events-none -bottom-4 -right-3 rotate-12`}
             />
           )}
 
-        </motion.div>
+        </div>
       </div>
 
       {/* Spacer for the other side */}
       <div className="w-[45%] max-md:hidden" />
 
-    </motion.div>
+    </div>
   );
 })

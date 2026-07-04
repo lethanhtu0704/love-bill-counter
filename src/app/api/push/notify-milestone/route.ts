@@ -71,6 +71,12 @@ export async function POST() {
 
   const sent = multicast.successCount;
   const failed = multicast.failureCount;
+  // Surface delivery results in Vercel function logs — a 200 response with
+  // sent: 0 is otherwise invisible from the client.
+  console.log(
+    `notify-milestone: tokens=${tokens.length} sent=${sent} failed=${failed}`,
+    failed > 0 ? errorsByCode : ""
+  );
   return NextResponse.json({
     ok: true,
     sent,
