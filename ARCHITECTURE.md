@@ -118,7 +118,7 @@ src/
 
 ### E. Push Notifications (`src/app/api/push/`)
 - **Purpose:** Engage users by alerting them about relationship milestones.
-- **Flow:** Client subscribes via `api/push/subscribe` → Token stored hashed in RTDB (`pushTokens/{sha256(token)}`) → `notify-milestone/` dispatches via FCM `sendEachForMulticast` → Invalid tokens cleaned up from cached snapshot (no redundant reads).
+- **Flow:** Client subscribes via `api/push/subscribe` → Token stored hashed in RTDB (`pushTokens/{sha256(token)}`) → server calls the shared `sendPushToAllDevices()` helper (`src/lib/pushServer.ts`), which dispatches via FCM `sendEachForMulticast` and prunes tokens FCM reports as dead. Two call sites share this helper: `notify-milestone/` (milestone alerts) and `gold/refresh/` (gold price alerts, §5.F) — add new push triggers through the same helper rather than re-implementing the send/cleanup loop.
 - **Two notification paths:** the device that adds the milestone shows an immediate **local** notification (`notifyMilestoneAddedLocal`); every registered device (including the sender) gets the **FCM push**, displayed by the `push` handler in `sw.ts`. Both use the same `tag` so the sender doesn't see duplicates. ⚠️ This means "I saw a notification on my own phone" does **not** prove FCM works — the local path masks FCM failures.
 
 #### Incident (2026-07): pushes only appeared on the sender's phone
@@ -142,6 +142,12 @@ src/
 - **Refresh Rules:** `GET/POST /api/gold/refresh` fetches PNJ server-side via Firebase Admin and only writes a new snapshot when (a) `buy`/`sell` changed, or (b) the latest snapshot is from a different UTC calendar day (so daily history stays continuous).
 - **Auth:** When `CRON_SECRET` is set, the endpoint accepts either `Authorization: Bearer <CRON_SECRET>` (Vercel Cron) or same-origin browser requests (the manual "Cập nhật giá" button).
 - **Cron:** `vercel.json` schedules `/api/gold/refresh` daily at `0 2 * * *` UTC (≈09:00 Asia/Ho_Chi_Minh) to guarantee a baseline snapshot per day.
+- **Push Notifications:** Whenever `refresh()` actually **saves** a new snapshot (real price change, or the once-per-day continuity checkpoint), the route sends a push to every subscribed device via the shared `sendPushToAllDevices` helper (`src/lib/pushServer.ts`) — no notification is sent on runs where nothing was written (e.g. redundant cron hits within the same day/price). Message copy is trend-aware, built by `buildGoldNotification()` in the route:
+  - Price up: `📈 Vàng tăng lên {sell}đ/chỉ` / `Bán +{diff}đ (+{pct}%) so với hôm qua · Mua {buy}đ`
+  - Price down: `📉 Vàng giảm còn {sell}đ/chỉ` / `Bán -{diff}đ (-{pct}%) so với hôm qua · Mua {buy}đ`
+  - Unchanged (daily checkpoint): `💰 Vàng giữ nguyên {sell}đ/chỉ` / `Không đổi so với hôm qua · Mua {buy}đ`
+  - No prior snapshot (first run ever): plain `💰 Giá vàng PNJ hôm nay` / `Mua {buy}đ · Bán {sell}đ`
+  Uses `tag: "gold_price"` (separate from `milestone_added`) and deep-links to `/gold` with the PNJ icon. Triggered from both the cron hit and the manual "Cập nhật giá" button, since both go through the same `refresh()` path.
 - **UI Flow:** Header (date + last `updateDate` time) → full-width refresh button (`#a23d69`) → current price card with PNJ icon → comparison summary card with period selector (`Tháng này / 7D / 30D / 90D`) computing `((currentSell - lowestSell) / lowestSell) * 100` → SVG line chart (Buy dashed, Sell solid) with `7D / 30D / 90D` selector.
 
 ## 6. Firebase & Data Flow

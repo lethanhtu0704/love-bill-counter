@@ -1,13 +1,58 @@
 import { NextResponse } from "next/server";
 
 import { getAdminDatabase } from "@/lib/firebaseAdmin";
+import { sendPushToAllDevices } from "@/lib/pushServer";
 import {
   COLLECTIONS,
   GOLD_PRODUCT_CODE,
   GOLD_PRODUCT_NAME,
+  GOLD_UNIT_LABEL,
   PNJ_GOLD_API_URL,
 } from "@/lib/constants";
 import type { GoldSnapshot } from "@/lib/types";
+
+const numberFmt = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 });
+
+// Trend-aware copy for the lock-screen notification: leads with direction +
+// today's sell price (the number people scan for first), body gives the
+// day-over-day delta. Falls back to a plain readout when there's no
+// previous snapshot to compare against (very first run).
+function buildGoldNotification(
+  snapshot: GoldSnapshot,
+  previous: GoldSnapshot | null
+): { title: string; body: string } {
+  const sell = numberFmt.format(snapshot.sell);
+  const buy = numberFmt.format(snapshot.buy);
+
+  if (!previous) {
+    return {
+      title: `💰 Giá vàng PNJ hôm nay`,
+      body: `Mua ${buy}đ · Bán ${sell}đ (${GOLD_UNIT_LABEL})`,
+    };
+  }
+
+  const diff = snapshot.sell - previous.sell;
+  const pct = previous.sell > 0 ? (diff / previous.sell) * 100 : 0;
+  const diffAbs = numberFmt.format(Math.abs(diff));
+  const pctAbs = Math.abs(pct).toFixed(2);
+
+  if (diff > 0) {
+    return {
+      title: `📈 Vàng tăng lên ${sell}đ/chỉ`,
+      body: `Bán +${diffAbs}đ (+${pctAbs}%) so với hôm qua · Mua ${buy}đ`,
+    };
+  }
+  if (diff < 0) {
+    return {
+      title: `📉 Vàng giảm còn ${sell}đ/chỉ`,
+      body: `Bán -${diffAbs}đ (-${pctAbs}%) so với hôm qua · Mua ${buy}đ`,
+    };
+  }
+  return {
+    title: `💰 Vàng giữ nguyên ${sell}đ/chỉ`,
+    body: `Không đổi so với hôm qua · Mua ${buy}đ`,
+  };
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +93,7 @@ async function refresh(): Promise<{
   ok: boolean;
   saved: boolean;
   snapshot: GoldSnapshot | null;
+  previous?: GoldSnapshot | null;
   error?: string;
 }> {
   const upstream = await fetch(PNJ_GOLD_API_URL, {
@@ -133,6 +179,7 @@ async function refresh(): Promise<{
     ok: true,
     saved: true,
     snapshot: { id: newRef.key as string, ...newSnap },
+    previous: latest,
   };
 }
 
@@ -163,7 +210,27 @@ export async function GET(req: Request) {
     if (!result.ok) {
       return NextResponse.json(result, { status: 502 });
     }
-    return NextResponse.json(result);
+
+    let push: Awaited<ReturnType<typeof sendPushToAllDevices>> | undefined;
+    if (result.saved && result.snapshot) {
+      const { title, body } = buildGoldNotification(
+        result.snapshot,
+        result.previous ?? null
+      );
+      push = await sendPushToAllDevices({
+        title,
+        body,
+        tag: "gold_price",
+        url: "/gold",
+        icon: "/assets/pnj-icon.png",
+      });
+      console.log(
+        `gold/refresh push: sent=${push.sent} failed=${push.failed}`,
+        push.failed > 0 ? push.errorsByCode : ""
+      );
+    }
+
+    return NextResponse.json({ ...result, push });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
