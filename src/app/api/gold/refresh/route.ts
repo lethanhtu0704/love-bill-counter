@@ -39,18 +39,18 @@ function buildGoldNotification(
   if (diff > 0) {
     return {
       title: `📈 Vàng tăng lên ${sell}đ/chỉ`,
-      body: `Bán +${diffAbs}đ (+${pctAbs}%) so với hôm qua · Mua ${buy}đ`,
+      body: `Bán +${diffAbs}đ (+${pctAbs}%) so với hôm qua·`,
     };
   }
   if (diff < 0) {
     return {
       title: `📉 Vàng giảm còn ${sell}đ/chỉ`,
-      body: `Bán -${diffAbs}đ (-${pctAbs}%) so với hôm qua · Mua ${buy}đ`,
+      body: `Bán -${diffAbs}đ (-${pctAbs}%) so với hôm qua.`,
     };
   }
   return {
-    title: `💰 Vàng giữ nguyên ${sell}đ/chỉ`,
-    body: `Không đổi so với hôm qua · Mua ${buy}đ`,
+    title: `Vàng giữ nguyên ${sell}đ/chỉ`,
+    body: `Không đổi so với hôm qua·`,
   };
 }
 
