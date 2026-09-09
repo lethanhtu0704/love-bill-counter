@@ -54,6 +54,9 @@ export default function MusicPlayerPage() {
   const handleEndedRef = useRef<() => void>(() => {});
   const disabledSongsRef = useRef<Set<string>>(new Set());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirrors `isPlaying` so the visibility-reconcile handler below always
+  // reads the latest intent without needing to be re-registered.
+  const isPlayingRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -65,6 +68,7 @@ export default function MusicPlayerPage() {
   // Keep ref in sync so lock-screen callbacks always see the latest index
   useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
   useEffect(() => { disabledSongsRef.current = disabledSongs; }, [disabledSongs]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   const filteredSongs = useMemo(() => {
     if (!searchQuery.trim()) return songs;
@@ -93,6 +97,14 @@ export default function MusicPlayerPage() {
     hasEndedRef.current = false;
     currentIndexRef.current = index;
     setCurrentIndex(index);
+    // Reset the displayed clock immediately — otherwise the Now Playing screen
+    // keeps showing the *previous* track's audioDuration/currentTime until the
+    // new file's `loadedmetadata` fires (async, can lag), which reads as
+    // "duration doesn't match this song". Seed with the DB-authored duration
+    // (same number the Library list shows) so both views agree instantly;
+    // onLoadedMetadata below refines it with the browser-measured value.
+    setCurrentTime(0);
+    setAudioDuration(song.duration || 0);
     audio.src = song.audioUrl;
     audio.load();
     const playPromise = audio.play();
@@ -190,6 +202,41 @@ export default function MusicPlayerPage() {
       catch (e) { /* action not supported on this platform */ }
     }
   }, [handlePrev, handleNext]);
+
+  // Reconcile playback when the page regains visibility/focus — iOS Safari can
+  // suspend JS execution while the screen is locked/backgrounded, so the native
+  // `ended` event and the `timeupdate` fallback may never reach our handlers
+  // during that window. It has also been observed to silently drop real audio
+  // output after a background track-change (the play() promise resolves, but
+  // nothing is actually audible) until the tab is foregrounded again. On
+  // resume we check the real <audio> state against what we intended and
+  // recover: advance if the track had actually finished, or re-issue play()
+  // if it should be playing but isn't.
+  useEffect(() => {
+    const reconcile = () => {
+      const audio = audioRef.current;
+      if (!audio || currentIndexRef.current < 0) return;
+      const finished =
+        audio.duration > 0 &&
+        isFinite(audio.duration) &&
+        (audio.ended || audio.currentTime >= audio.duration - 0.3);
+      if (finished && !hasEndedRef.current) {
+        handleEndedRef.current();
+        return;
+      }
+      if (isPlayingRef.current && audio.paused && !finished) {
+        audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      }
+    };
+    document.addEventListener("visibilitychange", reconcile);
+    window.addEventListener("pageshow", reconcile);
+    window.addEventListener("focus", reconcile);
+    return () => {
+      document.removeEventListener("visibilitychange", reconcile);
+      window.removeEventListener("pageshow", reconcile);
+      window.removeEventListener("focus", reconcile);
+    };
+  }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
