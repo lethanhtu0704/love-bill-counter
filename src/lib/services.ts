@@ -9,6 +9,7 @@ import {
 } from "firebase/database";
 import { db } from "./firebase";
 import { COLLECTIONS, DOCS, DEFAULT_RATES, DEFAULT_START_DATE } from "./constants";
+import { DEFAULT_VEG_SETTINGS } from "./calendar";
 import type {
   LoveConfig,
   Milestone,
@@ -22,6 +23,8 @@ import type {
   IngredientCache,
   Song,
   GoldSnapshot,
+  CalendarEvent,
+  VegSettings,
 } from "./types";
 
 // ===== Love Counter Services =====
@@ -343,4 +346,42 @@ export async function getGoldHistory(): Promise<GoldSnapshot[]> {
 export async function getLatestGold(): Promise<GoldSnapshot | null> {
   const history = await getGoldHistory();
   return history.length > 0 ? history[history.length - 1] : null;
+}
+
+// ===== Lunar Calendar Services =====
+
+export async function getCalendarEvents(): Promise<CalendarEvent[]> {
+  const snapshot = await get(child(ref(db), COLLECTIONS.CALENDAR_EVENTS));
+  if (!snapshot.exists()) return [];
+  const data = snapshot.val() as Record<string, Omit<CalendarEvent, "id">>;
+  return Object.entries(data)
+    .map(([id, ev]) => ({ id, ...ev }))
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function addCalendarEvent(
+  data: Omit<CalendarEvent, "id" | "createdAt">
+): Promise<CalendarEvent> {
+  const newRef = push(child(ref(db), COLLECTIONS.CALENDAR_EVENTS));
+  const record: Omit<CalendarEvent, "id"> = { ...data, createdAt: Date.now() };
+  // RTDB rejects `undefined` values
+  if (!record.note) delete record.note;
+  await set(newRef, record);
+  return { id: newRef.key as string, ...record };
+}
+
+export async function deleteCalendarEvent(id: string): Promise<void> {
+  await remove(child(ref(db), `${COLLECTIONS.CALENDAR_EVENTS}/${id}`));
+}
+
+export async function getVegSettings(): Promise<VegSettings> {
+  const snapshot = await get(
+    child(ref(db), `${COLLECTIONS.CALENDAR_SETTINGS}/veg`)
+  );
+  if (!snapshot.exists()) return DEFAULT_VEG_SETTINGS;
+  return { ...DEFAULT_VEG_SETTINGS, ...(snapshot.val() as Partial<VegSettings>) };
+}
+
+export async function saveVegSettings(settings: VegSettings): Promise<void> {
+  await set(child(ref(db), `${COLLECTIONS.CALENDAR_SETTINGS}/veg`), settings);
 }

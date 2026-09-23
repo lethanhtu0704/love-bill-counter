@@ -3,6 +3,10 @@
     {
       "path": "/api/gold/refresh",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/calendar/remind",
+      "schedule": "0 13 * * *"
     }
   ]
 }

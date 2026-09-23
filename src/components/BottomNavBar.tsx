@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ReactElement, SVGProps } from "react";
-import { HomeIcon, HeartIcon, MusicIcon, UtensilsIcon, CoinIcon } from "./icons";
+import { HomeIcon, HeartIcon, MusicIcon, UtensilsIcon, CoinIcon, MoonIcon } from "./icons";
 
 type NavItem = {
   id: string;
@@ -17,7 +17,7 @@ export default function BottomNavBar() {
   const router = useRouter();
   const quickAddMode = searchParams.get("quickAdd") === "1";
 
-  // Configuration for the 5 tabs
+  // Configuration for the 6 tabs
   const navItems: NavItem[] = [
     {
       id: "music",
@@ -55,6 +55,14 @@ export default function BottomNavBar() {
       icon: CoinIcon,
       isActive: (currentPathname) =>
         currentPathname === "/gold" || currentPathname.startsWith("/gold/"),
+    },
+    {
+      id: "calendar",
+      href: "/calendar",
+      icon: MoonIcon,
+      isActive: (currentPathname) =>
+        currentPathname === "/calendar" ||
+        currentPathname.startsWith("/calendar/"),
     },
   ];
 

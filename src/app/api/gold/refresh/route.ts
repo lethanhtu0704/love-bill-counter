@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isAuthorizedCronRequest } from "@/lib/cronAuth";
 import { getAdminDatabase } from "@/lib/firebaseAdmin";
 import { sendPushToAllDevices } from "@/lib/pushServer";
 import {
@@ -184,25 +185,12 @@ async function refresh(): Promise<{
 }
 
 export async function GET(req: Request) {
-  // If a CRON_SECRET is configured, allow:
-  //   1. Vercel Cron (sends Authorization: Bearer <CRON_SECRET>)
-  //   2. Same-origin browser requests (the manual "Cập nhật giá" button)
-  // Reject everything else.
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    const isCron = auth === `Bearer ${cronSecret}`;
-    const origin = req.headers.get("origin");
-    const host = req.headers.get("host");
-    const isSameOrigin =
-      origin && host ? origin.endsWith(host) : false;
-
-    if (!isCron && !isSameOrigin) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  // Vercel Cron (Bearer CRON_SECRET) or the same-origin "Cập nhật giá" button.
+  if (!isAuthorizedCronRequest(req, { allowSameOrigin: true })) {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
   try {

@@ -8,6 +8,9 @@ export const COLLECTIONS = {
   MEAL_PLANNER_INGREDIENTS: "meal_planner_ingredients",
   MUSIC: "music",
   GOLD_HISTORY: "gold_history",
+  CALENDAR_EVENTS: "calendar_events",
+  CALENDAR_SETTINGS: "calendar_settings",
+  CALENDAR_REMINDER_LOG: "calendar_reminder_log",
 } as const;
 
 // Gold tracking constants

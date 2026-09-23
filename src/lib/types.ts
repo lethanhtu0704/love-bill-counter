@@ -117,3 +117,34 @@ export interface GoldSnapshot {
 
 export type GoldComparisonRange = "month" | "7d" | "30d" | "90d";
 export type GoldChartRange = "7d" | "30d" | "90d";
+
+// ===== Lunar Calendar Types =====
+
+export type CalendarEventType =
+  | "personal"
+  | "family"
+  | "work"
+  | "memorial"
+  | "health";
+
+export type CalendarEventRepeat = "none" | "lunar-yearly";
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  type: CalendarEventType;
+  date: string; // yyyy-MM-dd (solar) of the first occurrence
+  lunarDay: number; // captured at creation, drives yearly lunar repeats
+  lunarMonth: number;
+  lunarLeap: boolean;
+  repeat: CalendarEventRepeat;
+  remindDays: number; // 0 = no reminder; otherwise days before (1 / 3 / 7)
+  note?: string;
+  createdAt: number;
+}
+
+export interface VegSettings {
+  days: number[]; // lunar days of month (1..30)
+  shiftThirtyToTwentyNine: boolean; // "Tháng thiếu dời 30 → 29"
+  remindEvening: boolean; // push at 20:00 the evening before
+}

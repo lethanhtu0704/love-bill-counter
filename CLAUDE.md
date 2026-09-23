@@ -15,7 +15,7 @@ There is no test suite. Verify changes by running the app.
 
 ## Architecture
 
-This is a single Next.js (16, App Router, React 19) PWA bundling several independent features under `src/app/`: **love-counter**, **room-bill**, **meal-planner**, **music**, and **gold**. Firebase Realtime Database is the backing store for all of them.
+This is a single Next.js (16, App Router, React 19) PWA bundling several independent features under `src/app/`: **love-counter**, **room-bill**, **meal-planner**, **music**, **gold**, and **calendar** (âm lịch). Firebase Realtime Database is the backing store for all of them.
 
 **`ARCHITECTURE.md` is the authoritative, detailed reference** — read it for feature flows, data paths, and the rationale behind patterns. Key points to know before editing:
 
@@ -38,4 +38,4 @@ This is a single Next.js (16, App Router, React 19) PWA bundling several indepen
 
 - Client config: `NEXT_PUBLIC_FIREBASE_*` (see `.env.example`), plus `NEXT_PUBLIC_FIREBASE_VAPID_KEY` for web push.
 - Server secrets: `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` (literal `\n` in the key is converted to real newlines), `GEMINI_API_KEY` (meal-planner AI), and `CRON_SECRET` (gold refresh auth).
-- `vercel.json` runs a daily cron hitting `/api/gold/refresh` at `0 2 * * *` UTC.
+- `vercel.json` runs two daily crons: `/api/gold/refresh` at `0 2 * * *` UTC (09:00 VN) and `/api/calendar/remind` at `0 13 * * *` UTC (20:00 VN). Both authenticate via `src/lib/cronAuth.ts` and push via `src/lib/pushServer.ts`.

@@ -6,6 +6,7 @@ A unified Next.js web application that bundles four primary features:
 2. **Room Bill Calculator:** A comprehensive utility for calculating, managing, and generating receipts for monthly room bills.
 3. **Meal Planner:** A weekly meal planning feature (breakfast/lunch/dinner) with per-day editing and Firebase persistence.
 4. **Gold Tracker:** A mobile-first PNJ gold price tracker (`Nhẫn Trơn PNJ 999.9`) with snapshot history, period comparison, and price chart.
+5. **Lunar Calendar (Âm lịch):** Vietnamese lunar calendar with veg-day (ngày ăn chay) tracking, events with reminders, and solar↔lunar conversion.
 
 ## 2. Tech Stack & Libraries
 - **Framework:** Next.js (16.x) with the **App Router** (`src/app`).
@@ -149,6 +150,15 @@ src/
   - No prior snapshot (first run ever): plain `💰 Giá vàng PNJ hôm nay` / `Mua {buy}đ · Bán {sell}đ`
   Uses `tag: "gold_price"` (separate from `milestone_added`) and deep-links to `/gold` with the PNJ icon. Triggered from both the cron hit and the manual "Cập nhật giá" button, since both go through the same `refresh()` path.
 - **UI Flow:** Header (date + last `updateDate` time) → full-width refresh button (`#a23d69`) → current price card with PNJ icon → comparison summary card with period selector (`Tháng này / 7D / 30D / 90D`) computing `((currentSell - lowestSell) / lowestSell) * 100` → SVG line chart (Buy dashed, Sell solid) with `7D / 30D / 90D` selector.
+
+### G. Lunar Calendar (`src/app/calendar/`)
+- **Purpose:** Month view showing solar + lunar dates, veg days (ngày ăn chay), holidays and events; quick solar↔lunar converter; push reminders the evening before.
+- **Lunar math:** `src/lib/lunar.ts` — pure, isomorphic port of Hồ Ngọc Đức's algorithm evaluated at **UTC+7** (the Vietnamese calendar differs from the Chinese one in some years). Exposes `solarToLunar` (incl. `monthLength` 29/30), `lunarToSolar` (returns `null` for non-existent dates), `getLeapMonth`, can-chi helpers. Verified by solar→lunar→solar round-trip for every day 1990–2059 (the original algorithm is off by one lunation on 7/5/2054 — fixed by stepping `k` until `monthStart <= day < nextMonthStart`).
+- **Domain logic:** `src/lib/calendar.ts` — shared by UI and cron: `Ymd` date keys (`yyyy-MM-dd`, timezone-free), `isVegDay` (incl. "tháng thiếu dời 30 → 29"), `nextVegDay`, `occursOn` (one-off or **yearly by lunar date**, landing on the regular non-leap month; a 30th falls back to 29 in short months), holidays, `.ics` export (`buildVegIcs`, VALARM −4h = 20:00 the evening before).
+- **Storage:** `calendar_events/{pushId}` (`CalendarEvent`: title, type, first-occurrence `date`, captured `lunarDay/Month/Leap`, `repeat: none | lunar-yearly`, `remindDays: 0|1|3|7`, optional `note`), `calendar_settings/veg` (`VegSettings`), `calendar_reminder_log/{yyyy-MM-dd}` (cron idempotency). Data is shared across devices like the other features.
+- **UI:** `CalendarPage` (header, today card, next-veg card, `MonthGrid` memoized 42-cell Monday-first grid, selected-day events with two-tap delete). Sheets (`AddEventSheet`, `ConvertSheet`, `VegSettingsSheet`) are `next/dynamic`-loaded on open and use a CSS-only `BottomSheet` (no framer-motion). Enabling a reminder calls `ensureFcmToken()` inside the tap so the device registers for push (iOS gesture requirement).
+- **Reminder cron:** `GET /api/calendar/remind`, scheduled `0 13 * * *` UTC (= **20:00** Asia/Ho_Chi_Minh; Vercel Hobby may fire anywhere within that hour). Computes "today" in VN time and sends **one** push (`tag: calendar_reminder`, deep-link `/calendar`) summarising: tomorrow is a veg day (if `remindEvening`), tomorrow's events with any reminder, and events exactly 3/7 days out whose `remindDays` matches. Nothing to say → no push. Already logged for today → skipped (safe on cron retries). `?dryRun=1` previews the message (also allowed same-origin), `?date=yyyy-MM-dd` overrides today for testing.
+- **Shared with Gold:** both cron routes use `isAuthorizedCronRequest()` (`src/lib/cronAuth.ts`, Bearer `CRON_SECRET`; gold additionally allows same-origin for its manual button) and `sendPushToAllDevices()`. They keep **separate schedules** because gold wants a 09:00 baseline and reminders want 20:00.
 
 ## 6. Firebase & Data Flow
 - `lib/firebase.ts`: Initializes the client-side Firebase app.
